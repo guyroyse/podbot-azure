@@ -1,30 +1,60 @@
 # PodBot - AI Podcast Recommendation Chat
 
-PodBot is a specialized AI chatbot that provides personalized podcast recommendations and discusses all things podcasting. Built with modern web technologies and powered by OpenAI, it maintains conversation context across sessions using Redis Agent Memory Server.
+PodBot is a specialized AI chatbot that provides personalized podcast recommendations and discusses all things podcasting. Built with Azure Static Web Apps, Azure Functions, and powered by OpenAI, it maintains conversation context across sessions using Redis Agent Memory Server.
 
 ## Quick Start
 
-1. **Clone this repo**:
+### Prerequisites
 
-2. **Set up a .env file**:
+- [Node.js](https://nodejs.org/) (v20)
+- [Docker](https://www.docker.com/) (for local Redis and AMS)
+
+### Local Development Setup
+
+1. **Clone this repo**
+
+2. **Install dependencies**:
+
+```bash
+npm run install
+```
+
+3. **Set up environment files**:
 
 ```bash
 cp .env.example .env
+cp api/local.settings.example.json api/local.settings.json
 ```
 
-3. **Add your OpenAI API key** to `.env`:
+4. **Add your OpenAI API key** to `.env`:
 
 ```
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-4. **Start all services**:
+5. **Also add your OpenAI API key** to `api/local.settings.json`:
+
+```json
+{
+  "Values": {
+    "OPENAI_API_KEY": "your_openai_api_key_here"
+  }
+}
+```
+
+6. **Start Redis and Agent Memory Server**:
 
 ```bash
 docker compose up
 ```
 
-5. **Open your browser** to [http://localhost:3000](http://localhost:3000)
+7. **Start the API** (in one terminal):
+
+```bash
+npm run dev
+```
+
+8. **Open your browser** to the URL shown by the SWA CLI (usually [http://localhost:4280](http://localhost:4280))
 
 That's it! Enter a username and start chatting with PodBot about podcasts.
 
@@ -35,38 +65,64 @@ That's it! Enter a username and start chatting with PodBot about podcasts.
 3. **Get AI-powered responses** with personalized suggestions based on your conversation history
 4. **Clear your session** anytime to start fresh
 
+## Project Structure
+
+```
+podbot-azure/
+├── api/                    # Azure Functions (backend)
+│   ├── src/
+│   │   ├── functions/      # HTTP function definitions
+│   │   ├── services/       # Business logic
+│   │   ├── config.ts       # Configuration
+│   │   └── main.ts         # Entry point
+│   ├── host.json
+│   ├── local.settings.json
+│   └── package.json
+├── web/                    # Static Web App (frontend)
+│   ├── src/
+│   │   ├── main.ts
+│   │   ├── api.ts
+│   │   └── style.css
+│   ├── index.html
+│   ├── staticwebapp.config.json
+│   └── package.json
+├── docker-compose.yaml     # Redis + AMS for local dev
+├── package.json            # Root workspace
+└── .env                    # Environment variables
+```
+
 ## Architecture
 
-PodBot is built as a microservices architecture with four main components:
+PodBot is built with Azure serverless technologies and containerized dependencies:
 
 ### **Web Frontend**
 
+- **[Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static)** for hosting
 - **[Vite](https://vitejs.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** for fast development and type safety
-- **[Nginx](https://nginx.org/)** reverse proxy for efficient static serving and API routing
 - **[Marked.js](https://marked.js.org/)** for markdown rendering of bot responses
 - **[FontAwesome](https://fontawesome.com/)** for modern UI icons
 
-### **Chat API Backend**
+### **API Backend**
 
-- **[Node.js](https://nodejs.org/)** + **[Express](https://expressjs.com/)** for the web server
+- **[Azure Functions](https://azure.microsoft.com/en-us/products/functions)** with v4 programming model
 - **[TypeScript](https://www.typescriptlang.org/)** for end-to-end type safety
 - **[LangChain](https://js.langchain.com/)** for LLM integration and message handling
-- Clean architecture with adapters, services, and routes
+- Clean architecture with functions, services, and shared utilities
 
 ### **AI & Memory**
 
-- **[OpenAI GPT-4o-mini](https://openai.com/)** via LangChain for intelligent responses
+- **[OpenAI GPT-4o](https://openai.com/)** via LangChain for intelligent responses
 - **[Redis Agent Memory Server (AMS)](https://github.com/redis/agent-memory-server)** for persistent conversation context
 - Smart context window management for efficient token usage
 
 ### **Data Storage**
 
 - **[Redis](https://redis.io/)** database for session storage and caching
-- **[Docker Compose](https://docs.docker.com/compose/)** for orchestrating all services
+- **[Docker Compose](https://docs.docker.com/compose/)** for local development dependencies
 
 ```mermaid
 graph LR
-    A[Web UI<br/>Vite + TypeScript] --> B[Chat API<br/>Express + LangChain.js]
+    A[Static Web App<br/>Vite + TypeScript] --> B[Azure Functions<br/>LangChain.js + TypeScript]
     B --> C[Agent Memory Server<br/>Python + FastAPI]
     C --> D[Redis<br/>Database]
     B --> E[OpenAI<br/>GPT-4o models]
@@ -76,84 +132,62 @@ graph LR
 ## Key Features
 
 - **Podcast-Focused AI**: Specialized chatbot that only discusses podcasts and recommendations
-- **Persistent Memory**: Conversation history maintained across sessions
+- **Persistent Memory**: Conversation history maintained across sessions via AMS
 - **Modern UI**: Responsive chat interface with markdown support and loading states
 - **Type Safety**: Full-stack TypeScript for reliable development
-- **Container Ready**: Complete Docker setup for easy deployment
+- **Azure Native**: Built with Azure Static Web Apps and Azure Functions
+- **Serverless**: No servers to manage, scales automatically
 - **Fast Performance**: Vite for lightning-fast development and optimized builds
+- **Local Dev Friendly**: SWA CLI proxies API requests seamlessly
 
 ## Development & Testing
 
 ### API Testing
 
-Test the backend directly with curl:
+Test the Azure Functions backend directly with curl:
 
 ```bash
 # Send a message
-curl -X POST http://localhost:3001/sessions/testuser \
+curl -X POST http://localhost:7071/api/sessions/testuser \
   -H "Content-Type: application/json" \
   -d '{"message": "Recommend some true crime podcasts"}'
 
 # Get conversation history
-curl -X GET http://localhost:3001/sessions/testuser
+curl -X GET http://localhost:7071/api/sessions/testuser
 
 # Clear conversation
-curl -X DELETE http://localhost:3001/sessions/testuser
-```
-
-### Local Development
-
-```bash
-# Backend development
-cd chat-api && npm run dev
-
-# Frontend development
-cd chat-web && npm run dev
-
-# View logs
-docker compose logs -f chat-api
-docker compose logs -f agent-memory-server
+curl -X DELETE http://localhost:7071/api/sessions/testuser
 ```
 
 ## Configuration
 
 ### Required Environment Variables
 
+**`.env` (for Docker services):**
+
 - `OPENAI_API_KEY` - Your OpenAI API key ([get one here](https://platform.openai.com/api-keys))
 
-### Optional Environment Variables
+**`api/local.settings.json` (for Azure Functions):**
 
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `AMS_BASE_URL` - Agent Memory Server URL (default: http://localhost:8000)
 - `AMS_CONTEXT_WINDOW_MAX` - Token limit for context window (default: 4000)
-- `PORT` - Chat API server port (default: 3001)
+
+### Optional Environment Variables (`.env`)
+
 - `AUTH_MODE` - AMS authentication mode (default: disabled)
 - `LOG_LEVEL` - AMS logging level (default: DEBUG)
 
-## Docker Services
+## Local Services
 
-The application runs as four containerized services:
+When running locally, the application uses these services:
 
-| Service                 | Port | Description                                  |
-| ----------------------- | ---- | -------------------------------------------- |
-| **chat-web**            | 3000 | Frontend web interface (Nginx + Vite build)  |
-| **chat-api**            | 3001 | Backend API server (Node.js + Express)       |
-| **agent-memory-server** | 8000 | Memory management service (Python + FastAPI) |
-| **redis**               | 6379 | Database for session storage                 |
-
-## Useful Commands
-
-```bash
-# Rebuild and restart services
-docker compose up --build
-
-# Run in background
-docker compose up -d
-
-# Stop all services
-docker compose down
-
-# View all logs
-docker compose logs -f
-```
+| Service                 | Port | Description                              |
+| ----------------------- | ---- | ---------------------------------------- |
+| **SWA CLI**             | 4280 | Static Web App dev server with API proxy |
+| **Azure Functions**     | 7071 | Backend API (Azure Functions runtime)    |
+| **agent-memory-server** | 8000 | Memory management service (Docker)       |
+| **redis**               | 6379 | Database for session storage (Docker)    |
 
 ---
 
