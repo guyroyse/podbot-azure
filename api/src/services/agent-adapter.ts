@@ -1,6 +1,7 @@
 import dedent from 'dedent'
 import { SystemMessage, BaseMessage, AIMessage } from '@langchain/core/messages'
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatOpenAI, AzureChatOpenAI } from '@langchain/openai'
+import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity'
 
 import { config } from '@/config.js'
 
@@ -21,11 +22,7 @@ const SYSTEM_PROMPT = dedent`
   based on what they've enjoyed before.
 `
 
-const llm = new ChatOpenAI({
-  apiKey: config.openaiApiKey,
-  model: 'gpt-4o-mini',
-  temperature: 0.7
-})
+const llm = createLLM()
 
 export async function generateResponse(messages: BaseMessage[]): Promise<AIMessage> {
   // a basic system prompt
@@ -36,4 +33,36 @@ export async function generateResponse(messages: BaseMessage[]): Promise<AIMessa
 
   // return the AI message
   return new AIMessage(response.text)
+}
+
+function createLLM(): ChatOpenAI {
+  switch (config.nodeEnv) {
+    case 'prod':
+    case 'stage':
+      return createAzureLLM()
+    case 'dev':
+      return createLocalLLM()
+    default:
+      throw new Error(`Unsupported NODE_ENV: ${config.nodeEnv}`)
+  }
+}
+
+function createLocalLLM(): ChatOpenAI {
+  return new ChatOpenAI({
+    apiKey: config.openaiApiKey,
+    model: 'gpt-4o-mini',
+    temperature: 0.7
+  })
+}
+
+function createAzureLLM(): ChatOpenAI {
+  return new AzureChatOpenAI({
+    azureADTokenProvider: getBearerTokenProvider(
+      new DefaultAzureCredential(),
+      'https://cognitiveservices.azure.com/.default'
+    ),
+    azureOpenAIEndpoint: config.azureOpenAIEndpoint,
+    azureOpenAIApiDeploymentName: config.azureOpenAIDeployment,
+    temperature: 0.7
+  })
 }
