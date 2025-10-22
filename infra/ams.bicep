@@ -3,25 +3,16 @@ metadata description = 'Creates an Azure Container App running the Agent Memory 
 param location string = resourceGroup().location
 param resourceToken string
 param containerAppsEnvironmentId string
-param identityId string
-param identityClientId string
-param redisHost string
-param redisPort int
+param redisConnectionString string
+@secure()
+param openAiApiKey string
 param openAiEndpoint string
-param gpt4oDeploymentName string
-param gpt4oMiniDeploymentName string
-param embeddingDeploymentName string
+param tenantId string
 
 // Agent Memory Server Container App
 resource ams 'Microsoft.App/containerApps@2025-07-01' = {
   name: 'ca-ams-${resourceToken}'
   location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identityId}': {}
-    }
-  }
   properties: {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
@@ -43,44 +34,28 @@ resource ams 'Microsoft.App/containerApps@2025-07-01' = {
           }
           env: [
             {
-              name: 'REDIS_HOST'
-              value: redisHost
+              name: 'REDIS_URL'
+              value: redisConnectionString
             }
             {
-              name: 'REDIS_PORT'
-              value: string(redisPort)
+              name: 'OPENAI_API_KEY'
+              value: openAiApiKey
             }
             {
-              name: 'REDIS_SSL'
-              value: 'true'
-            }
-            {
-              name: 'AZURE_CLIENT_ID'
-              value: identityClientId
-            }
-            {
-              name: 'REDIS_USE_ENTRA_ID'
-              value: 'true'
-            }
-            {
-              name: 'AZURE_OPENAI_ENDPOINT'
+              name: 'OPENAI_API_BASE'
               value: openAiEndpoint
             }
             {
-              name: 'AZURE_OPENAI_DEPLOYMENT'
-              value: gpt4oDeploymentName
+              name: 'AUTH_MODE'
+              value: 'oauth2'
             }
             {
-              name: 'AZURE_OPENAI_FAST_DEPLOYMENT'
-              value: gpt4oMiniDeploymentName
+              name: 'OAUTH2_ISSUER_URL'
+              value: 'https://login.microsoftonline.com/${tenantId}/v2.0'
             }
             {
-              name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT'
-              value: embeddingDeploymentName
-            }
-            {
-              name: 'OPENAI_API_TYPE'
-              value: 'azure'
+              name: 'OAUTH2_AUDIENCE'
+              value: 'api://ca-ams-${resourceToken}'
             }
           ]
         }

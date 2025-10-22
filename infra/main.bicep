@@ -1,8 +1,7 @@
 targetScope = 'subscription'
 
-@minLength(1)
-@maxLength(64)
 @description('Name of the environment which is used to generate a short unique hash used in all resources.')
+@allowed(['stage', 'prod'])
 param environmentName string
 
 @minLength(1)
@@ -63,7 +62,6 @@ module openAi './openai.bicep' = {
   params: {
     resourceToken: resourceToken
     functionsPrincipalId: identities.outputs.functionsPrincipalId
-    amsPrincipalId: identities.outputs.amsPrincipalId
   }
 }
 
@@ -73,7 +71,6 @@ module redis './redis.bicep' = {
   scope: resourceGroup
   params: {
     resourceToken: resourceToken
-    principalId: identities.outputs.amsPrincipalId
   }
 }
 
@@ -84,14 +81,10 @@ module ams './ams.bicep' = {
   params: {
     resourceToken: resourceToken
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
-    identityId: identities.outputs.amsIdentityId
-    identityClientId: identities.outputs.amsClientId
-    redisHost: redis.outputs.hostName
-    redisPort: redis.outputs.port
+    redisConnectionString: redis.outputs.connectionString
+    openAiApiKey: openAi.outputs.apiKey
     openAiEndpoint: openAi.outputs.endpoint
-    gpt4oDeploymentName: openAi.outputs.gpt4oDeploymentName
-    gpt4oMiniDeploymentName: openAi.outputs.gpt4oMiniDeploymentName
-    embeddingDeploymentName: openAi.outputs.embeddingDeploymentName
+    tenantId: tenant().tenantId
   }
 }
 
@@ -101,6 +94,7 @@ module web './web.bicep' = {
   scope: resourceGroup
   params: {
     resourceToken: resourceToken
+    environmentName: environmentName
     openAiEndpoint: openAi.outputs.endpoint
     openAiDeploymentName: openAi.outputs.gpt4oMiniDeploymentName
     functionsIdentityId: identities.outputs.functionsIdentityId
@@ -118,15 +112,11 @@ output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
 
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_OPENAI_GPT4O_DEPLOYMENT string = openAi.outputs.gpt4oDeploymentName
-output AZURE_OPENAI_GPT4O_MINI_DEPLOYMENT string = openAi.outputs.gpt4oMiniDeploymentName
-output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = openAi.outputs.embeddingDeploymentName
 
 output REDIS_HOSTNAME string = redis.outputs.hostName
 output REDIS_PORT int = redis.outputs.port
 
 output AMS_URI string = ams.outputs.uri
-output AMS_IDENTITY_CLIENT_ID string = identities.outputs.amsClientId
 
 output WEB_URI string = web.outputs.uri
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

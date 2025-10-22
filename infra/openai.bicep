@@ -1,6 +1,5 @@
 param resourceToken string
 param functionsPrincipalId string
-param amsPrincipalId string
 
 // Azure OpenAI Service
 var accountName = 'oai-${resourceToken}'
@@ -94,21 +93,11 @@ resource functionsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-0
   }
 }
 
-// Assign Cognitive Services OpenAI User role to the AMS identity
-resource amsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(openAiAccount.id, amsPrincipalId, cognitiveServicesOpenAIUserRoleId)
-  scope: openAiAccount
-  properties: {
-    roleDefinitionId: roleDefinitionId
-    principalId: amsPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // Outputs
 output id string = openAiAccount.id
 output name string = openAiAccount.name
 output endpoint string = openAiAccount.properties.endpoint
+output apiKey string = openAiAccount.listKeys().key1
 output gpt4oDeploymentName string = gpt4oDeployment.name
 output gpt4oMiniDeploymentName string = gpt4oMiniDeployment.name
 output embeddingDeploymentName string = embeddingDeployment.name

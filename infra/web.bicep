@@ -2,25 +2,20 @@ metadata description = 'Creates an Azure Static Web App with integrated Azure Fu
 
 param location string = resourceGroup().location
 param resourceToken string
+param environmentName string
 param openAiEndpoint string
 param openAiDeploymentName string
 param functionsIdentityId string
 param amsBaseUrl string
 param applicationInsightsConnectionString string
 
-@allowed([
-  'Free'
-  'Standard'
-])
-param sku string = 'Standard'
-
 // Azure Static Web App
 resource staticWebApp 'Microsoft.Web/staticSites@2024-11-01' = {
   name: 'swa-${resourceToken}'
   location: location
   sku: {
-    name: sku
-    tier: sku
+    name: 'Standard'
+    tier: 'Standard'
   }
   identity: {
     type: 'UserAssigned'
@@ -29,8 +24,6 @@ resource staticWebApp 'Microsoft.Web/staticSites@2024-11-01' = {
     }
   }
   properties: {
-    repositoryUrl: ''
-    branch: ''
     buildProperties: {
       appLocation: 'web'
       apiLocation: 'api'
@@ -44,12 +37,20 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2024-11-01' = {
   parent: staticWebApp
   name: 'appsettings'
   properties: {
+    // Application Insights
+    APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsightsConnectionString
+
+    // Environment
+    NODE_ENV: environmentName
+
+    // Azure OpenAI Configuration (managed identity auth in production)
     AZURE_OPENAI_ENDPOINT: openAiEndpoint
-    AZURE_OPENAI_DEPLOYMENT_NAME: openAiDeploymentName
+    AZURE_OPENAI_DEPLOYMENT: openAiDeploymentName
     AZURE_CLIENT_ID: reference(functionsIdentityId, '2023-01-31').clientId
+
+    // AMS Configuration
     AMS_BASE_URL: amsBaseUrl
     AMS_CONTEXT_WINDOW_MAX: '4000'
-    APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsightsConnectionString
   }
 }
 
