@@ -9,6 +9,12 @@ infra:
 
 services:
   web:
-    project: ./src
+    project: ./web
+    dist: dist
     language: ts
     host: staticwebapp
+    module: web
+    hooks:
+      predeploy:
+        posix: npm install && npm run build
+        windows: npm install && npm run build

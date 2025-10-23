@@ -6,8 +6,8 @@
   "license": "MIT",
   "private": true,
   "workspaces": [
-    "src/api",
-    "src/web"
+    "web",
+    "web/api"
   ],
   "devDependencies": {
     "@azure/static-web-apps-cli": "^2.0.6",
