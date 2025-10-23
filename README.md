@@ -121,9 +121,9 @@ PodBot is built with Azure serverless technologies and containerized dependencie
 graph LR
     A[Static Web App<br/>Vite + TypeScript] --> B[Azure Functions<br/>LangChain.js + TypeScript]
     B --> C[Agent Memory Server<br/>Python + FastAPI]
-    C --> D[Redis<br/>Database]
-    B --> E[OpenAI<br/>GPT-4o models]
-    C --> E
+    B --> D[OpenAI<br/>GPT-4o models]
+    C --> D
+    C --> E[Redis<br/>Database]
 ```
 
 ## Key Features
