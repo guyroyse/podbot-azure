@@ -46,6 +46,9 @@ resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2024-11-01' = {
     // Environment
     NODE_ENV: environmentName
 
+    // Azure Functions v4 Programming Model Support
+    // AzureWebJobsFeatureFlags: 'EnableWorkerIndexing'
+
     // Azure OpenAI Configuration (API key auth)
     AZURE_OPENAI_ENDPOINT: openAiEndpoint
     AZURE_OPENAI_DEPLOYMENT: openAiDeploymentName
