@@ -7,6 +7,15 @@ infra:
   path: infra
   module: main
 
+hooks:
+  predeploy:
+    posix:
+      shell: sh
+      run: npm install && npm run build
+    windows:
+      shell: pwsh
+      run: npm install && npm run build
+
 services:
   web:
     project: ./web
@@ -14,7 +23,3 @@ services:
     language: ts
     host: staticwebapp
     module: web
-    hooks:
-      predeploy:
-        posix: npm install && npm run build
-        windows: npm install && npm run build

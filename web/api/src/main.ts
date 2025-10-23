@@ -1,1 +1,1 @@
-import '@/functions/sessions.js'
+import '@functions/sessions.js'
