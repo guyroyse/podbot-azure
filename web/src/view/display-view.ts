@@ -1,5 +1,5 @@
 import { marked } from 'marked'
-import { type ChatMessage, ChatRole } from '../model'
+import { ChatRole, type ChatMessage } from '../types'
 
 const messageHistory = document.querySelector('#message-history') as HTMLElement
 const mainContainer = document.querySelector('main') as HTMLElement

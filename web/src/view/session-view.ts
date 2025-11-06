@@ -1,3 +1,5 @@
+import type { Username } from '../types'
+
 const usernameInput = document.querySelector('#username') as HTMLInputElement
 const loadButton = document.querySelector('#load-session') as HTMLButtonElement
 const clearButton = document.querySelector('#clear-session') as HTMLButtonElement
@@ -27,7 +29,7 @@ export class SessionView extends EventTarget {
     this.#updateButtonStates()
   }
 
-  get username(): string {
+  get username(): Username {
     return usernameInput.value.trim()
   }
 

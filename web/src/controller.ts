@@ -1,17 +1,20 @@
-import { DisplayView } from './views/display-view'
-import { SessionView } from './views/session-view'
-import { SenderView } from './views/sender-view'
-import { fetchSessionHistory, sendMessage, clearSession, ChatRole, type ChatMessage } from './model'
+import { DisplayView } from './view/display-view'
+import { SessionView } from './view/session-view'
+import { SenderView } from './view/sender-view'
+import { ChatModel } from './model/chat-model'
+import { ChatRole, type ChatMessage, type SessionHistory, type Username } from './types'
 
 export class AppController {
   #displayView: DisplayView
   #sessionView: SessionView
   #senderView: SenderView
+  #chatModel: ChatModel
 
   constructor() {
     this.#displayView = new DisplayView()
     this.#sessionView = new SessionView()
     this.#senderView = new SenderView()
+    this.#chatModel = new ChatModel()
   }
 
   start(): void {
@@ -25,12 +28,12 @@ export class AppController {
   }
 
   async #onSessionLoad(): Promise<void> {
-    const username = this.#sessionView.username
+    const username: Username = this.#sessionView.username
 
     this.#disableUI()
 
     try {
-      const messages = await fetchSessionHistory(username)
+      const messages: SessionHistory = await this.#chatModel.fetchSessionHistory(username)
       this.#displayView.clearHistory()
       messages.forEach(message => this.#displayView.displayMessage(message))
     } catch (error) {
@@ -41,7 +44,7 @@ export class AppController {
   }
 
   async #onSessionClear(): Promise<void> {
-    const username = this.#sessionView.username
+    const username: Username = this.#sessionView.username
 
     const confirmed = confirm(`Are you sure you want to clear the session for ${username}?`)
     if (!confirmed) return
@@ -49,7 +52,7 @@ export class AppController {
     this.#disableUI()
 
     try {
-      await clearSession(username)
+      await this.#chatModel.clearSession(username)
       this.#displayView.clearHistory()
     } catch (error) {
       this.#displayView.displayError(error as Error)
@@ -67,18 +70,17 @@ export class AppController {
   }
 
   async #onMessageSend(): Promise<void> {
-    const message = this.#senderView.message
-    const username = this.#sessionView.username
+    const message: string = this.#senderView.message
+    const username: Username = this.#sessionView.username
+    const userMessage: ChatMessage = { role: ChatRole.USER, content: message }
 
     this.#senderView.clearInput()
     this.#disableUI()
 
-    const userMessage: ChatMessage = { role: ChatRole.USER, content: message }
     this.#displayView.displayMessage(userMessage)
 
     try {
-      const response = await sendMessage(username, message)
-      const botMessage: ChatMessage = { role: ChatRole.PODBOT, content: response.response }
+      const botMessage: ChatMessage = await this.#chatModel.sendMessage(username, userMessage)
       this.#displayView.displayMessage(botMessage)
     } catch (error) {
       this.#displayView.displayError(error as Error)
