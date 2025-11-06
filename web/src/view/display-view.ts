@@ -121,7 +121,7 @@ export class DisplayView {
 
     overlay.appendChild(spinner)
     this.#loadingElement = overlay
-    mainContainer.appendChild(this.#loadingElement)
+    document.body.appendChild(this.#loadingElement)
   }
 
   #hideLoadingIndicator(): void {
