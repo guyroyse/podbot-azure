@@ -60,28 +60,43 @@ That's it! Enter a username and start chatting with PodBot about podcasts.
 
 ```
 podbot-azure/
-├── web/                         # Static Web App (frontend + backend)
-│   ├── api/                     # Azure Functions (backend)
-│   │   ├── src/
-│   │   │   ├── functions/       # HTTP function definitions
-│   │   │   ├── services/        # Business logic
-│   │   │   ├── config.ts        # Configuration
-│   │   │   └── main.ts          # Entry point
-│   │   ├── host.json
-│   │   ├── local.settings.json
-│   │   └── package.json
-│   ├── src/                     # Frontend application
-│   │   ├── main.ts
-│   │   ├── api.ts
+├── api/                         # Azure Functions (backend)
+│   ├── src/
+│   │   ├── functions/           # HTTP function definitions
+│   │   │   ├── sessions.ts      # Route registration (app.http calls)
+│   │   │   ├── fetch-session-history.ts
+│   │   │   ├── request-and-response.ts
+│   │   │   ├── delete-session.ts
+│   │   │   └── http-responses.ts
+│   │   ├── services/            # Business logic layers
+│   │   │   ├── agent-adapter.ts # LLM integration (OpenAI/Azure OpenAI)
+│   │   │   ├── chat-service.ts  # Message conversion & orchestration
+│   │   │   └── memory-server.ts # AMS API client
+│   │   ├── config.ts
+│   │   └── main.ts              # Entry point
+│   ├── host.json
+│   ├── local.settings.json
+│   └── package.json             # Workspace: @podbot/api
+├── web/                         # Static Web App (frontend)
+│   ├── src/
+│   │   ├── model/               # MVC Model layer
+│   │   │   ├── chat-api.ts      # API client
+│   │   │   └── chat-model.ts    # Business logic
+│   │   ├── view/                # MVC View layer
+│   │   │   ├── display-view.ts  # Chat display
+│   │   │   ├── session-view.ts  # Session controls
+│   │   │   └── sender-view.ts   # Message input
+│   │   ├── controller.ts        # MVC Controller
+│   │   ├── main.ts              # App entry point
 │   │   ├── types.ts
 │   │   └── style.css
 │   ├── index.html
 │   ├── staticwebapp.config.json
-│   └── package.json
+│   └── package.json             # Workspace: @podbot/web
 ├── infra/                       # Azure Bicep templates
 ├── docker-compose.yaml          # Redis + AMS + LiteLLM for local dev
 ├── azure.yaml                   # Azure Developer CLI config
-├── package.json                 # Root workspace
+├── package.json                 # Root workspace: @podbot/root
 └── .env                         # Environment variables
 ```
 

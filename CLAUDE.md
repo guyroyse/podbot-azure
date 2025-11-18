@@ -76,7 +76,7 @@ This starts:
 ```bash
 # Build commands (from root)
 npm run build              # Build both workspaces sequentially
-npm run build:api          # Build API only (runs in web/api workspace)
+npm run build:api          # Build API only (runs in api workspace)
 npm run build:web          # Build web only (runs in web workspace)
 
 # Dev commands (from root)
