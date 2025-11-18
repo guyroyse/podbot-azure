@@ -1,6 +1,7 @@
 import dedent from 'dedent'
 import { SystemMessage, BaseMessage, AIMessage } from '@langchain/core/messages'
 import { ChatOpenAI } from '@langchain/openai'
+import type { InvocationContext } from '@azure/functions'
 
 import { config } from '@/config.js'
 
@@ -21,32 +22,38 @@ const SYSTEM_PROMPT = dedent`
   based on what they've enjoyed before.
 `
 
-const llm = createLLM()
+let llm: ChatOpenAI | null = null
 
-export async function generateResponse(messages: BaseMessage[]): Promise<AIMessage> {
+export async function generateResponse(
+  messages: BaseMessage[],
+  invocationContext: InvocationContext
+): Promise<AIMessage> {
   // a basic system prompt
   const systemPrompt = new SystemMessage(SYSTEM_PROMPT)
 
   // call the LLM
+  const llm = fetchLLM(invocationContext)
   const response = await llm.invoke([systemPrompt, ...messages])
+  invocationContext.log('Invoked LLM')
 
   // return the AI message
   return new AIMessage(response.text)
 }
 
-function createLLM(): ChatOpenAI {
-  // In production/stage, we use LiteLLM proxy which translates to Azure OpenAI
-  // In dev, we use either LiteLLM proxy (if available) or direct OpenAI
-  // LiteLLM provides OpenAI-compatible API, so we always use ChatOpenAI class
+function fetchLLM(invocationContext: InvocationContext): ChatOpenAI {
+  if (!llm) {
+    const configuration: any = {
+      apiKey: config.openaiApiKey,
+      model: 'gpt-4o-mini',
+      temperature: 0.7
+    }
 
-  const configuration: any = {
-    apiKey: config.openaiApiKey,
-    model: 'gpt-4o-mini',
-    temperature: 0.7
+    if (config.openaiBaseUrl) configuration.configuration = { baseURL: config.openaiBaseUrl }
+
+    invocationContext.log('LLM Configuration:', configuration)
+
+    llm = new ChatOpenAI(configuration)
   }
 
-  // If using LiteLLM proxy (Azure deployment) or custom base URL
-  if (config.openaiBaseUrl) configuration.configuration = { baseURL: config.openaiBaseUrl }
-
-  return new ChatOpenAI(configuration)
+  return llm
 }

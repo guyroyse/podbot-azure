@@ -4,9 +4,10 @@ param location string = resourceGroup().location
 param resourceToken string
 param containerAppsEnvironmentId string
 @secure()
+param litellmMasterKey string
+@secure()
 param azureOpenAiApiKey string
 param azureOpenAiEndpoint string
-param azureOpenAiApiVersion string
 param gpt4oDeploymentName string
 param gpt4oMiniDeploymentName string
 param embeddingDeploymentName string
@@ -19,7 +20,7 @@ resource litellm 'Microsoft.App/containerApps@2025-07-01' = {
     managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
       ingress: {
-        external: false  // Internal only - only AMS and Functions should access
+        external: true  // External access required for Azure Functions (Consumption Plan)
         targetPort: 4000
         transport: 'http'
         allowInsecure: false
@@ -30,35 +31,43 @@ resource litellm 'Microsoft.App/containerApps@2025-07-01' = {
         {
           name: 'litellm'
           image: 'ghcr.io/berriai/litellm:main-stable'
+          command: ['/bin/sh', '-c', 'echo "$LITELLM_CONFIG" > /app/config.yaml && litellm --config /app/config.yaml --port 4000']
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
           }
           env: [
             {
-              name: 'AZURE_API_KEY'
-              value: azureOpenAiApiKey
-            }
-            {
-              name: 'AZURE_API_BASE'
-              value: azureOpenAiEndpoint
-            }
-            {
-              name: 'AZURE_API_VERSION'
-              value: azureOpenAiApiVersion
-            }
-            {
               name: 'LITELLM_MASTER_KEY'
-              value: 'sk-1234'  // Simple key for internal communication
+              value: litellmMasterKey
             }
             {
               name: 'LITELLM_LOG'
               value: 'INFO'
             }
-            // Model mappings: Map OpenAI model names to Azure deployments
             {
-              name: 'MODEL_LIST'
-              value: '[{"model_name": "gpt-4o", "litellm_params": {"model": "azure/${gpt4oDeploymentName}", "api_base": "${azureOpenAiEndpoint}", "api_key": "${azureOpenAiApiKey}", "api_version": "${azureOpenAiApiVersion}"}}, {"model_name": "gpt-4o-mini", "litellm_params": {"model": "azure/${gpt4oMiniDeploymentName}", "api_base": "${azureOpenAiEndpoint}", "api_key": "${azureOpenAiApiKey}", "api_version": "${azureOpenAiApiVersion}"}}, {"model_name": "text-embedding-3-small", "litellm_params": {"model": "azure/${embeddingDeploymentName}", "api_base": "${azureOpenAiEndpoint}", "api_key": "${azureOpenAiApiKey}", "api_version": "${azureOpenAiApiVersion}"}}]'
+              name: 'LITELLM_CONFIG'
+              value: loadTextContent('./litellm.config.yaml')
+            }
+            {
+              name: 'GPT4O_DEPLOYMENT_NAME'
+              value: 'azure/${gpt4oDeploymentName}'
+            }
+            {
+              name: 'GPT4O_MINI_DEPLOYMENT_NAME'
+              value: 'azure/${gpt4oMiniDeploymentName}'
+            }
+            {
+              name: 'EMBEDDING_DEPLOYMENT_NAME'
+              value: 'azure/${embeddingDeploymentName}'
+            }
+            {
+              name: 'AZURE_OPENAI_ENDPOINT'
+              value: azureOpenAiEndpoint
+            }
+            {
+              name: 'AZURE_OPENAI_API_KEY'
+              value: azureOpenAiApiKey
             }
           ]
         }

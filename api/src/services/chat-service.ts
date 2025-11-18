@@ -1,3 +1,4 @@
+import type { InvocationContext } from '@azure/functions'
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 
 import type { AmsMessage } from './memory-server.js'
@@ -16,28 +17,36 @@ export type ChatMessage = {
   content: string
 }
 
-export async function fetchHistory(username: string): Promise<ChatMessage[]> {
+export async function fetchHistory(username: string, invocationContext: InvocationContext): Promise<ChatMessage[]> {
   try {
     // Get existing AMS working memory
-    const { context, messages } = await readWorkingMemory(username, 'chat')
+    const { context, messages } = await readWorkingMemory(username, 'chat', invocationContext)
+    invocationContext.log(`Fetched working memory for user: ${username}`)
 
     // Convert to chat message format
     const contextMessage = context ? amsContextToChatMessage(context) : undefined
     const chatMessages = messages.map(amsToChatMessage)
     const chatHistory = contextMessage ? [contextMessage, ...chatMessages] : chatMessages
 
+    invocationContext.log(`Converted chat history for user: ${username}`)
+
     // Return the chat history
     return chatHistory
   } catch (error) {
-    console.error('Error reading working memory:', error)
+    invocationContext.error(`Error reading working memory for user: ${username}`, error)
     return []
   }
 }
 
-export async function processMessage(username: string, message: string): Promise<string> {
+export async function processMessage(
+  username: string,
+  message: string,
+  invocationContext: InvocationContext
+): Promise<string> {
   try {
     // Get existing AMS working memory
-    const { context, messages } = await readWorkingMemory(username, 'chat')
+    const { context, messages } = await readWorkingMemory(username, 'chat', invocationContext)
+    invocationContext.log(`Fetched working memory for user: ${username}`)
 
     // Convert to LangChain message format
     const contextMessage = context ? new SystemMessage(`Previous conversation context: ${context}`) : undefined
@@ -46,37 +55,48 @@ export async function processMessage(username: string, message: string): Promise
     const langChainMessages = contextMessage
       ? [contextMessage, ...chatMessages, userMessage]
       : [...chatMessages, userMessage]
+    invocationContext.log(`Converted messages to LangChain format for user: ${username}`)
 
     // Get AI response
-    const aiMessage = await generateResponse(langChainMessages)
+    const aiMessage = await generateResponse(langChainMessages, invocationContext)
     const aiText = aiMessage.text
+    invocationContext.log(`Generated AI response for user: ${username}`)
 
     // Convert back to AMS format and save
     const amsUserMessage = langchainToAmsMessage(userMessage)
     const amsAiMessage = langchainToAmsMessage(aiMessage)
     const amsMessages = [...messages, amsUserMessage, amsAiMessage]
+    invocationContext.log(`Converted messages to AMS format for user: ${username}`)
 
     // Save updated working memory
-    await replaceWorkingMemory(username, config.amsContextWindowMax, {
-      session_id: username,
-      namespace: 'chat',
-      context: context,
-      messages: amsMessages
-    })
+    await replaceWorkingMemory(
+      username,
+      config.amsContextWindowMax,
+      {
+        session_id: username,
+        namespace: 'chat',
+        context: context,
+        messages: amsMessages
+      },
+      invocationContext
+    )
+
+    invocationContext.log(`Updated working memory for user: ${username}`)
 
     // Return AI response
     return aiText
   } catch (error) {
-    console.error('Error processing message:', error)
+    invocationContext.error(`Error processing message for user: ${username}`, error)
     return `Error processing message: ${error}`
   }
 }
 
-export async function clearSession(username: string): Promise<void> {
+export async function clearSession(username: string, invocationContext: InvocationContext): Promise<void> {
   try {
-    await removeWorkingMemory(username, 'chat')
+    await removeWorkingMemory(username, 'chat', invocationContext)
+    invocationContext.log(`Cleared working memory for user: ${username}`)
   } catch (error) {
-    console.error('Error clearing session:', error)
+    invocationContext.error(`Error clearing session for user: ${username}`, error)
   }
 }
 

@@ -10,6 +10,9 @@ param location string = resourceGroup().location
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
 
+// Generate secure master key for LiteLLM (shared across LiteLLM, AMS, and Functions)
+var litellmMasterKey = 'sk-${uniqueString(resourceGroup().id, resourceToken, 'litellm-master-key')}'
+
 // ==============================================================================
 // Shared Infrastructure & Services
 // ==============================================================================
@@ -65,9 +68,9 @@ module litellm './litellm.bicep' = {
   params: {
     resourceToken: resourceToken
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
+    litellmMasterKey: litellmMasterKey
     azureOpenAiApiKey: openAi.outputs.apiKey
     azureOpenAiEndpoint: openAi.outputs.endpoint
-    azureOpenAiApiVersion: '2024-08-01-preview'
     gpt4oDeploymentName: openAi.outputs.gpt4oDeploymentName
     gpt4oMiniDeploymentName: openAi.outputs.gpt4oMiniDeploymentName
     embeddingDeploymentName: openAi.outputs.embeddingDeploymentName
@@ -81,7 +84,7 @@ module ams './ams.bicep' = {
     resourceToken: resourceToken
     containerAppsEnvironmentId: containerAppsEnvironment.outputs.id
     redisConnectionString: redis.outputs.connectionString
-    openAiApiKey: 'sk-1234'  // LiteLLM master key for internal auth
+    openAiApiKey: litellmMasterKey  // LiteLLM master key for internal auth
     openAiEndpoint: litellm.outputs.uri
     tenantId: tenant().tenantId
   }
@@ -99,6 +102,14 @@ module web './web.bicep' = {
   }
 }
 
+// Reference the Static Web App from the module
+resource staticWebApp 'Microsoft.Web/staticSites@2025-03-01' existing = {
+  name: 'swa-${resourceToken}'
+  dependsOn: [
+    web
+  ]
+}
+
 // Azure Function App
 module functions './functions.bicep' = {
   name: 'functions'
@@ -108,7 +119,7 @@ module functions './functions.bicep' = {
     openAiConfig: {
       endpoint: litellm.outputs.uri  // Use LiteLLM proxy instead of direct Azure OpenAI
       deploymentName: 'gpt-4o-mini'  // Standard OpenAI model name (LiteLLM translates)
-      apiKey: 'sk-1234'  // LiteLLM master key
+      apiKey: litellmMasterKey  // LiteLLM master key
     }
     amsConfig: {
       baseUrl: ams.outputs.uri
@@ -116,11 +127,6 @@ module functions './functions.bicep' = {
     functionsIdentityId: identities.outputs.functionsIdentityId
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
   }
-}
-
-// Reference the Static Web App from the module
-resource staticWebApp 'Microsoft.Web/staticSites@2025-03-01' existing = {
-  name: 'swa-${resourceToken}'
 }
 
 // Link Function App to Static Web App
@@ -131,6 +137,10 @@ resource staticWebAppBackend 'Microsoft.Web/staticSites/linkedBackends@2025-03-0
     backendResourceId: functions.outputs.id
     region: location
   }
+  dependsOn: [
+    web
+    functions
+  ]
 }
 
 // ==============================================================================
@@ -147,6 +157,7 @@ output REDIS_HOSTNAME string = redis.outputs.hostName
 output REDIS_PORT int = redis.outputs.port
 
 output LITELLM_URI string = litellm.outputs.uri
+output LITELLM_MASTER_KEY string = litellmMasterKey
 output AMS_URI string = ams.outputs.uri
 
 output API_URI string = functions.outputs.uri
