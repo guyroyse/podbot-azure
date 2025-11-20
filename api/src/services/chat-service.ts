@@ -17,36 +17,41 @@ export type ChatMessage = {
   content: string
 }
 
-export async function fetchHistory(username: string, invocationContext: InvocationContext): Promise<ChatMessage[]> {
+export async function fetchHistory(
+  username: string,
+  sessionId: string,
+  invocationContext: InvocationContext
+): Promise<ChatMessage[]> {
   try {
     // Get existing AMS working memory
-    const { context, messages } = await readWorkingMemory(username, 'chat', invocationContext)
-    invocationContext.log(`Fetched working memory for user: ${username}`)
+    const { context, messages } = await readWorkingMemory('podbot', username, sessionId, invocationContext)
+    invocationContext.log(`Fetched working memory for podbot.${username}.${sessionId}`)
 
     // Convert to chat message format
     const contextMessage = context ? amsContextToChatMessage(context) : undefined
     const chatMessages = messages.map(amsToChatMessage)
     const chatHistory = contextMessage ? [contextMessage, ...chatMessages] : chatMessages
 
-    invocationContext.log(`Converted chat history for user: ${username}`)
+    invocationContext.log(`Converted chat history for podbot.${username}.${sessionId}`)
 
     // Return the chat history
     return chatHistory
   } catch (error) {
-    invocationContext.error(`Error reading working memory for user: ${username}`, error)
+    invocationContext.error(`Error reading working memory for podbot.${username}.${sessionId}`, error)
     return []
   }
 }
 
 export async function processMessage(
   username: string,
+  sessionId: string,
   message: string,
   invocationContext: InvocationContext
 ): Promise<string> {
   try {
     // Get existing AMS working memory
-    const { context, messages } = await readWorkingMemory(username, 'chat', invocationContext)
-    invocationContext.log(`Fetched working memory for user: ${username}`)
+    const { context, messages } = await readWorkingMemory('podbot', username, sessionId, invocationContext)
+    invocationContext.log(`Fetched working memory for podbot.${username}.${sessionId}`)
 
     // Convert to LangChain message format
     const contextMessage = context ? new SystemMessage(`Previous conversation context: ${context}`) : undefined
@@ -55,48 +60,53 @@ export async function processMessage(
     const langChainMessages = contextMessage
       ? [contextMessage, ...chatMessages, userMessage]
       : [...chatMessages, userMessage]
-    invocationContext.log(`Converted messages to LangChain format for user: ${username}`)
+    invocationContext.log(`Converted messages to LangChain format for podbot.${username}.${sessionId}`)
 
     // Get AI response
     const aiMessage = await generateResponse(langChainMessages, invocationContext)
     const aiText = aiMessage.text
-    invocationContext.log(`Generated AI response for user: ${username}`)
+    invocationContext.log(`Generated AI response for podbot.${username}.${sessionId}`)
 
     // Convert back to AMS format and save
     const amsUserMessage = langchainToAmsMessage(userMessage)
     const amsAiMessage = langchainToAmsMessage(aiMessage)
     const amsMessages = [...messages, amsUserMessage, amsAiMessage]
-    invocationContext.log(`Converted messages to AMS format for user: ${username}`)
+    invocationContext.log(`Converted messages to AMS format for podbot.${username}.${sessionId}`)
 
     // Save updated working memory
     await replaceWorkingMemory(
-      username,
+      sessionId,
       config.amsContextWindowMax,
       {
-        session_id: username,
-        namespace: 'chat',
+        namespace: 'podbot',
+        user_id: username,
+        session_id: sessionId,
         context: context,
         messages: amsMessages
       },
       invocationContext
     )
 
-    invocationContext.log(`Updated working memory for user: ${username}`)
+    invocationContext.log(`Updated working memory for podbot.${username}.${sessionId}`)
 
     // Return AI response
     return aiText
   } catch (error) {
-    invocationContext.error(`Error processing message for user: ${username}`, error)
+    invocationContext.error(`Error processing message for podbot.${username}.${sessionId}`, error)
     return `Error processing message: ${error}`
   }
 }
 
-export async function clearSession(username: string, invocationContext: InvocationContext): Promise<void> {
+export async function clearSession(
+  username: string,
+  sessionId: string,
+  invocationContext: InvocationContext
+): Promise<void> {
   try {
-    await removeWorkingMemory(username, 'chat', invocationContext)
-    invocationContext.log(`Cleared working memory for user: ${username}`)
+    await removeWorkingMemory('podbot', username, sessionId, invocationContext)
+    invocationContext.log(`Cleared working memory for podbot.${username}.${sessionId}`)
   } catch (error) {
-    invocationContext.error(`Error clearing session for user: ${username}`, error)
+    invocationContext.error(`Error clearing session for podbot.${username}.${sessionId}`, error)
   }
 }
 

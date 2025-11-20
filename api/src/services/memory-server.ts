@@ -12,8 +12,9 @@ export type AmsMessage = {
 }
 
 export type AmsMemory = {
-  session_id: string
   namespace: string
+  user_id: string
+  session_id: string
   context: string
   messages: AmsMessage[]
 }
@@ -22,12 +23,14 @@ export type AmsMemory = {
  * Retrieve conversation history for a session
  */
 export async function readWorkingMemory(
-  sessionId: string,
   namespace: string,
+  userId: string,
+  sessionId: string,
   invocationContext: InvocationContext
 ): Promise<AmsMemory> {
   const url = new URL(`/v1/working-memory/${sessionId}`, config.amsBaseUrl)
   url.searchParams.set('namespace', namespace)
+  url.searchParams.set('user_id', userId)
 
   invocationContext.log(`[AMS GET] ${url.toString()}`)
 
@@ -42,7 +45,7 @@ export async function readWorkingMemory(
   // Return empty session for new users
   if (response.status === 404) {
     invocationContext.log(`[AMS GET] Session not found, returning empty session`)
-    return { session_id: sessionId, namespace: namespace, context: '', messages: [] }
+    return { namespace: namespace, user_id: userId, session_id: sessionId, context: '', messages: [] }
   }
 
   if (!response.ok) {
@@ -95,12 +98,14 @@ export async function replaceWorkingMemory(
  * Delete conversation history for a session
  */
 export async function removeWorkingMemory(
-  sessionId: string,
   namespace: string,
+  userId: string,
+  sessionId: string,
   invocationContext: InvocationContext
 ): Promise<void> {
   const url = new URL(`/v1/working-memory/${sessionId}`, config.amsBaseUrl)
   url.searchParams.set('namespace', namespace)
+  url.searchParams.set('user_id', userId)
 
   invocationContext.log(`[AMS DELETE] ${url.toString()}`)
 

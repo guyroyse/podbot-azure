@@ -6,21 +6,21 @@ import { deleteSession } from './delete-session.js'
 
 app.http('fetchSessionHistory', {
   methods: ['GET'],
-  route: 'sessions/{username}',
+  route: 'sessions/{sessionId}/{username}',
   authLevel: 'anonymous',
   handler: fetchSessionHistory
 })
 
 app.http('requestAndResponse', {
   methods: ['POST'],
-  route: 'sessions/{username}',
+  route: 'sessions/{sessionId}/{username}',
   authLevel: 'anonymous',
   handler: requestAndResponse
 })
 
 app.http('deleteSession', {
   methods: ['DELETE'],
-  route: 'sessions/{username}',
+  route: 'sessions/{sessionId}/{username}',
   authLevel: 'anonymous',
   handler: deleteSession
 })
