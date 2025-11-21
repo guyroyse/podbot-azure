@@ -3,8 +3,8 @@
   import Footer from '@components/Footer.svelte'
   import LoginView from '@views/login/LoginView.svelte'
   import ChatView from '@views/chat/ChatView.svelte'
-  import SessionView from '@views/session/SessionView.svelte'
-  import MemoryView from '@views/memory/MemoryView.svelte'
+  import WorkingMemoryView from '@views/working-memory/WorkingMemoryView.svelte'
+  import LongTermMemoryView from '@views/long-term-memory/LongTermMemoryView.svelte'
   import AppRouter, { Route } from '@app/app-router.svelte.ts'
 
   const appRouter = AppRouter.instance
@@ -18,9 +18,9 @@
   {:else if appRouter.currentRoute === Route.Chat}
     <ChatView />
   {:else if appRouter.currentRoute === Route.Session}
-    <SessionView />
+    <WorkingMemoryView />
   {:else if appRouter.currentRoute === Route.Memory}
-    <MemoryView />
+    <LongTermMemoryView />
   {:else}
     <div class="flex-1 flex items-center justify-center">
       <p class="text-xl text-redis-hyper">Unknown route</p>

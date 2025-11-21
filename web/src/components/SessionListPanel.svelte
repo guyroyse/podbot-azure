@@ -24,7 +24,7 @@
     <button
       type="button"
       onclick={createNewSession}
-      class="w-full bg-redis-hyper hover:bg-redis-deep-hyper text-white px-4 py-2 font-sans text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+      class="w-full bg-redis-hyper hover:bg-redis-deep-hyper text-white px-4 py-2 font-sans text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
     >
       <i class="fa-solid fa-plus"></i>
       <span>New Session</span>
@@ -38,9 +38,9 @@
           <button
             type="button"
             onclick={() => selectSession(session.id)}
-            class="w-full text-left px-3 py-2 rounded-lg transition-colors {selectedId === session.id
-              ? 'bg-redis-hyper/10 text-redis-hyper border border-redis-hyper/30'
-              : 'hover:bg-redis-black-10 dark:hover:bg-redis-dusk text-redis-black dark:text-redis-white'}"
+            class="w-full text-left px-3 py-2 rounded-lg transition-all duration-200 {selectedId === session.id
+              ? 'bg-redis-black-10 dark:bg-redis-dusk text-redis-black dark:text-redis-white cursor-default'
+              : 'hover:bg-redis-black-10 dark:hover:bg-redis-dusk text-redis-black dark:text-redis-white cursor-pointer'}"
           >
             <div class="font-semibold text-sm truncate">{session.name}</div>
             <div class="text-xs opacity-60 mt-1">{session.lastActive}</div>

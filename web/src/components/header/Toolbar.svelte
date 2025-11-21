@@ -48,6 +48,8 @@
 
     <div class="w-px h-6 bg-redis-black-30 dark:bg-redis-dusk-70 mx-2"></div>
 
+    <span class="text-sm text-redis-black dark:text-redis-white font-mono">Logged in as <span class="text-redis-hyper">{appState.username}</span></span>
+
     <button
       type="button"
       onclick={handleLogout}
