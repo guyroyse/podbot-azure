@@ -1,14 +1,10 @@
 <script lang="ts">
-  import type WorkingMemoryViewModel from './working-memory-view-model.svelte.ts'
+  import WorkingMemoryState from '@state/working-memory-state.svelte.ts'
   import WorkingMemoryContext from './WorkingMemoryContext.svelte'
   import WorkingMemoryMessages from './WorkingMemoryMessages.svelte'
   import InfoCard from '@components/InfoCard.svelte'
 
-  interface Props {
-    viewModel: WorkingMemoryViewModel
-  }
-
-  let { viewModel }: Props = $props()
+  const workingMemoryState = WorkingMemoryState.instance
 </script>
 
 <div class="flex-1 flex flex-col min-h-0 p-5 overflow-y-auto">
@@ -22,13 +18,13 @@
     older messages and recent conversation history.
   </p>
 
-  {#if viewModel.hasContext || viewModel.messageCount > 0}
-    {#if viewModel.hasContext}
-      <WorkingMemoryContext context={viewModel.context} />
+  {#if workingMemoryState.hasContext || workingMemoryState.messageCount > 0}
+    {#if workingMemoryState.hasContext}
+      <WorkingMemoryContext context={workingMemoryState.context} />
     {/if}
 
-    {#if viewModel.messageCount > 0}
-      <WorkingMemoryMessages messages={viewModel.messages} />
+    {#if workingMemoryState.messageCount > 0}
+      <WorkingMemoryMessages messages={workingMemoryState.messages} />
     {/if}
   {:else}
     <div class="flex-1 flex items-center justify-center">

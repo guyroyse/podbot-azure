@@ -1,41 +1,50 @@
-type WorkingMemoryMessage = {
+export type WorkingMemoryMessage = {
   role: 'user' | 'assistant'
   content: string
 }
 
-type WorkingMemory = {
+export type WorkingMemory = {
   context: string
   messages: WorkingMemoryMessage[]
 }
 
-export default class WorkingMemoryViewModel {
+export default class WorkingMemoryState {
+  static #instance: WorkingMemoryState
+
   #workingMemory = $state<WorkingMemory>({ context: '', messages: [] })
   #isLoading = $state(false)
 
-  get isLoading() {
-    return this.#isLoading
+  private constructor() {}
+
+  static get instance() {
+    return this.#instance ?? (this.#instance = new WorkingMemoryState())
   }
 
-  get context() {
+  get context(): string {
     return this.#workingMemory.context
   }
 
-  get hasContext() {
+  get hasContext(): boolean {
     return this.#workingMemory.context.length > 0
   }
 
-  get messages() {
+  get messages(): WorkingMemoryMessage[] {
     return this.#workingMemory.messages
   }
 
-  get messageCount() {
+  get messageCount(): number {
     return this.#workingMemory.messages.length
   }
 
-  async loadWorkingMemory() {
+  get isLoading(): boolean {
+    return this.#isLoading
+  }
+
+  async loadWorkingMemory(sessionId: string, username: string): Promise<void> {
     this.#isLoading = true
     try {
       // TODO: Replace with actual API call
+      await this.#simulateDelay(500)
       this.#workingMemory = {
         context:
           "The user is interested in history podcasts, particularly ancient Rome and World War II. They prefer podcasts under 45 minutes and enjoy narrative storytelling styles. Previously recommended: Dan Carlin's Hardcore History, The History of Rome by Mike Duncan.",
@@ -60,5 +69,13 @@ export default class WorkingMemoryViewModel {
     } finally {
       this.#isLoading = false
     }
+  }
+
+  clear(): void {
+    this.#workingMemory = { context: '', messages: [] }
+  }
+
+  #simulateDelay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }

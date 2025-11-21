@@ -1,22 +1,33 @@
 <script lang="ts">
-  import { ulid } from 'ulid'
-  import AppState from '@app/app-state.svelte.ts'
+  import UserState from '@state/user-state.svelte.ts'
+  import SessionState from '@state/session-state.svelte.ts'
   import AppRouter from '@app/app-router.svelte.ts'
 
-  const appState = AppState.instance
+  const userState = UserState.instance
+  const sessionState = SessionState.instance
   const appRouter = AppRouter.instance
 
   let username = $state('')
   let password = $state('')
+  let isLoggingIn = $state(false)
 
-  function handleLogin(event: Event) {
+  async function handleLogin(event: Event) {
     event.preventDefault()
-
     if (!username.trim()) return
 
-    appState.username = username.trim()
-    appState.sessionId = ulid()
-    appRouter.routeToChat()
+    isLoggingIn = true
+    try {
+      userState.login(username.trim())
+      await sessionState.loadSessions(username.trim())
+
+      if (!sessionState.hasSessions) {
+        sessionState.createSession('New Chat')
+      }
+
+      appRouter.routeToChat()
+    } finally {
+      isLoggingIn = false
+    }
   }
 </script>
 
@@ -31,6 +42,7 @@
       bind:value={username}
       placeholder="Enter your username"
       class="w-full bg-redis-light-gray dark:bg-redis-black-90 border-2 border-redis-black-10 dark:border-redis-dusk-70 text-redis-black dark:text-redis-white px-4 py-3 font-sans text-base rounded-lg focus:outline-none focus:border-redis-hyper"
+      disabled={isLoggingIn}
       required
     />
   </div>
@@ -45,16 +57,22 @@
       bind:value={password}
       placeholder="Enter your password"
       class="w-full bg-redis-light-gray dark:bg-redis-black-90 border-2 border-redis-black-10 dark:border-redis-dusk-70 text-redis-black dark:text-redis-white px-4 py-3 font-sans text-base rounded-lg focus:outline-none focus:border-redis-hyper"
+      disabled={isLoggingIn}
       required
     />
   </div>
 
   <button
     type="submit"
-    disabled={!username.trim() || !password.trim()}
+    disabled={!username.trim() || !password.trim() || isLoggingIn}
     class="w-full bg-redis-hyper hover:bg-redis-deep-hyper border-2 border-redis-hyper hover:border-redis-deep-hyper text-white px-4 py-3 font-sans text-base font-semibold cursor-pointer rounded-lg transition-all flex items-center justify-center gap-2 hover:-translate-y-px focus:outline-none focus:shadow-[0_0_0_3px_rgba(255,68,56,0.3)] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
   >
-    <i class="fa-solid fa-right-to-bracket"></i>
-    <span>Login</span>
+    {#if isLoggingIn}
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Logging in...</span>
+    {:else}
+      <i class="fa-solid fa-right-to-bracket"></i>
+      <span>Login</span>
+    {/if}
   </button>
 </form>

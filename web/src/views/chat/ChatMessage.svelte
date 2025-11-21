@@ -1,8 +1,8 @@
 <script lang="ts">
   import { marked } from 'marked'
-  import AppState from '@app/app-state.svelte.ts'
+  import UserState from '@state/user-state.svelte.ts'
 
-  const appState = AppState.instance
+  const userState = UserState.instance
 
   type MessageRole = 'user' | 'podbot'
 
@@ -23,7 +23,7 @@
   }
 
   function getUsername(role: MessageRole): string {
-    if (role === 'user') return appState.username ?? 'user'
+    if (role === 'user') return userState.username ?? 'user'
     return 'Podbot'
   }
 </script>

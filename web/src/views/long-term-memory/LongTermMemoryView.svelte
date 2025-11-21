@@ -1,16 +1,21 @@
 <script lang="ts">
   import SessionListPanel from '@components/SessionListPanel.svelte'
   import LongTermMemoryPanel from './LongTermMemoryPanel.svelte'
-  import LongTermMemoryViewModel from './long-term-memory-view-model.svelte.ts'
+  import LongTermMemoryState from '@state/long-term-memory-state.svelte.ts'
+  import UserState from '@state/user-state.svelte.ts'
 
-  const viewModel = new LongTermMemoryViewModel()
+  const longTermMemoryState = LongTermMemoryState.instance
+  const userState = UserState.instance
 
   $effect(() => {
-    viewModel.loadMemories()
+    const username = userState.username
+    if (username) {
+      longTermMemoryState.loadMemories(username)
+    }
   })
 </script>
 
 <div class="flex-1 flex min-h-0">
   <SessionListPanel />
-  <LongTermMemoryPanel {viewModel} />
+  <LongTermMemoryPanel />
 </div>

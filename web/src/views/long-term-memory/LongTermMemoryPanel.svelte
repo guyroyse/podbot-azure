@@ -1,13 +1,9 @@
 <script lang="ts">
-  import type LongTermMemoryViewModel from './long-term-memory-view-model.svelte.ts'
+  import LongTermMemoryState from '@state/long-term-memory-state.svelte.ts'
   import LongTermMemoryList from './LongTermMemoryList.svelte'
   import InfoCard from '@components/InfoCard.svelte'
 
-  interface Props {
-    viewModel: LongTermMemoryViewModel
-  }
-
-  let { viewModel }: Props = $props()
+  const longTermMemoryState = LongTermMemoryState.instance
 </script>
 
 <div class="flex-1 flex flex-col min-h-0 p-5 overflow-y-auto">
@@ -21,8 +17,8 @@
     future reference.
   </p>
 
-  {#if viewModel.hasMemories}
-    <LongTermMemoryList memories={viewModel.memories} />
+  {#if longTermMemoryState.hasMemories}
+    <LongTermMemoryList memories={longTermMemoryState.memories} />
   {:else}
     <div class="flex-1 flex items-center justify-center">
       <InfoCard

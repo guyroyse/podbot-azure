@@ -1,12 +1,15 @@
 <script lang="ts">
-  import AppState from '@app/app-state.svelte.ts'
+  import UserState from '@state/user-state.svelte.ts'
+  import SessionState from '@state/session-state.svelte.ts'
   import AppRouter, { Route } from '@app/app-router.svelte.ts'
 
-  const appState = AppState.instance
+  const userState = UserState.instance
+  const sessionState = SessionState.instance
   const appRouter = AppRouter.instance
 
   function handleLogout() {
-    appState.logout()
+    userState.logout()
+    sessionState.clear()
     appRouter.routeToLogin()
   }
 
@@ -17,7 +20,7 @@
   }
 </script>
 
-{#if appState.isLoggedIn}
+{#if userState.isLoggedIn}
   <div class="flex items-center gap-2">
     <button
       type="button"
@@ -48,7 +51,7 @@
 
     <div class="w-px h-6 bg-redis-black-30 dark:bg-redis-dusk-70 mx-2"></div>
 
-    <span class="text-sm text-redis-black dark:text-redis-white font-mono">Logged in as <span class="text-redis-hyper">{appState.username}</span></span>
+    <span class="text-sm text-redis-black dark:text-redis-white font-mono">Logged in as <span class="text-redis-hyper">{userState.username}</span></span>
 
     <button
       type="button"

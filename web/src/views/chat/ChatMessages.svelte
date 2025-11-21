@@ -2,18 +2,15 @@
   import LoadingOverlay from '@components/LoadingOverlay.svelte'
   import ChatMessage from './ChatMessage.svelte'
   import InfoCard from '@components/InfoCard.svelte'
-  import type ChatViewModel from './chat-view-model.svelte.ts'
+  import ChatState from '@state/chat-state.svelte.ts'
 
-  interface Props {
-    viewModel: ChatViewModel
-  }
+  const chatState = ChatState.instance
 
-  let { viewModel }: Props = $props()
   let messagesContainer: HTMLDivElement
 
   // Auto-scroll to bottom when new messages arrive
   $effect(() => {
-    if (viewModel.messageCount > 0 && messagesContainer) {
+    if (chatState.messageCount > 0 && messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight
     }
   })
@@ -23,7 +20,7 @@
   bind:this={messagesContainer}
   class="flex-1 overflow-y-auto p-5 md:p-4 font-mono leading-relaxed min-h-0 relative"
 >
-  {#if viewModel.messages.length === 0}
+  {#if chatState.messages.length === 0}
     <div class="flex items-center justify-center h-full">
       <InfoCard
         icon="fa-solid fa-comments"
@@ -32,13 +29,13 @@
     </div>
   {:else}
     <ul class="list-none p-1 m-0">
-      {#each viewModel.messages as message}
+      {#each chatState.messages as message}
         <ChatMessage role={message.role} content={message.content} />
       {/each}
     </ul>
   {/if}
 
-  {#if viewModel.isLoading}
+  {#if chatState.isLoading}
     <LoadingOverlay />
   {/if}
 </div>
