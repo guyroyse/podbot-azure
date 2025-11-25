@@ -4,17 +4,9 @@ export type ChatMessage = {
 }
 
 export default class ChatState {
-  static #instance: ChatState
-
   #messages = $state<ChatMessage[]>([])
   #isLoading = $state(false)
   #isSending = $state(false)
-
-  private constructor() {}
-
-  static get instance() {
-    return this.#instance ?? (this.#instance = new ChatState())
-  }
 
   get messages(): ChatMessage[] {
     return this.#messages
@@ -43,9 +35,16 @@ export default class ChatState {
       await this.#simulateDelay(500)
       this.#messages = [
         { role: 'user', content: 'Can you recommend some history podcasts?' },
-        { role: 'podbot', content: 'I would recommend **Hardcore History** by Dan Carlin. It\'s an excellent deep dive into various historical topics.' },
+        {
+          role: 'podbot',
+          content:
+            "I would recommend **Hardcore History** by Dan Carlin. It's an excellent deep dive into various historical topics."
+        },
         { role: 'user', content: 'What about something shorter?' },
-        { role: 'podbot', content: 'For shorter episodes, try **History in 10 Minutes** or **Stuff You Missed in History Class**.' }
+        {
+          role: 'podbot',
+          content: 'For shorter episodes, try **History in 10 Minutes** or **Stuff You Missed in History Class**.'
+        }
       ]
     } catch (error) {
       console.error('Failed to load messages:', error)

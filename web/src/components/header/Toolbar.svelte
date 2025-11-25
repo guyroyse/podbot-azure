@@ -1,15 +1,14 @@
 <script lang="ts">
-  import UserState from '@state/user-state.svelte.ts'
-  import SessionState from '@state/session-state.svelte.ts'
-  import AppRouter, { Route } from '@app/app-router.svelte.ts'
+  import AppRouter, { Route } from '@root/src/app-router.svelte'
+  import AppState from '@root/src/state/app-state.svelte'
 
-  const userState = UserState.instance
-  const sessionState = SessionState.instance
   const appRouter = AppRouter.instance
+  const appState = AppState.instance
+
+  let username = $derived(appState.username)
 
   function handleLogout() {
-    userState.logout()
-    sessionState.clear()
+    appState.logout()
     appRouter.routeToLogin()
   }
 
@@ -20,7 +19,7 @@
   }
 </script>
 
-{#if userState.isLoggedIn}
+{#if appState.isLoggedIn}
   <div class="flex items-center gap-2">
     <button
       type="button"
@@ -33,9 +32,9 @@
 
     <button
       type="button"
-      onclick={() => appRouter.routeToSession()}
-      class="p-2 transition-colors {isActive(Route.Session)}"
-      title="Working Memory"
+      onclick={() => appRouter.routeToContext()}
+      class="p-2 transition-colors {isActive(Route.Context)}"
+      title="Context"
     >
       <i class="fa-solid fa-note-sticky text-lg"></i>
     </button>
@@ -44,14 +43,16 @@
       type="button"
       onclick={() => appRouter.routeToMemory()}
       class="p-2 transition-colors {isActive(Route.Memory)}"
-      title="Long-term Memory"
+      title="Memory"
     >
       <i class="fa-solid fa-brain text-lg"></i>
     </button>
 
     <div class="w-px h-6 bg-redis-black-30 dark:bg-redis-dusk-70 mx-2"></div>
 
-    <span class="text-sm text-redis-black dark:text-redis-white font-mono">Logged in as <span class="text-redis-hyper">{userState.username}</span></span>
+    <span class="text-sm text-redis-black dark:text-redis-white font-mono"
+      >Logged in as <span class="text-redis-hyper">{username}</span></span
+    >
 
     <button
       type="button"

@@ -10,7 +10,8 @@
     target="_blank"
     rel="noopener noreferrer"
     class="text-base text-redis-black dark:text-redis-white opacity-60 font-mono hover:opacity-100 transition-opacity"
-  >podbot v{version}</a>
+    >podbot v{version}</a
+  >
   <a href="https://redis.io" target="_blank" rel="noopener noreferrer">
     <img src="redis-logo-hyper.svg" alt="Redis" class="h-7" />
   </a>

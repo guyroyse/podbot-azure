@@ -1,22 +1,18 @@
 <script lang="ts">
   import AppState from '@root/src/state/app-state.svelte'
   import SessionPanel from '@components/session-panel/SessionPanel.svelte'
-  import ChatMessages from './ChatMessages.svelte'
-  import ChatInput from './ChatInput.svelte'
+  import MemoryPanel from './MemoryPanel.svelte'
 
   const appState = AppState.instance
 
   $effect(() => {
-    if (appState.currentSessionId && appState.username) {
-      appState.loadMessages()
+    if (appState.username) {
+      appState.loadMemories()
     }
   })
 </script>
 
 <div class="flex-1 flex min-h-0">
   <SessionPanel />
-  <div class="flex-1 flex flex-col min-h-0">
-    <ChatMessages />
-    <ChatInput />
-  </div>
+  <MemoryPanel />
 </div>

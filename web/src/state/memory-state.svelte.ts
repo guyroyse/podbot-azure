@@ -4,17 +4,9 @@ export type Memory = {
   created: string
 }
 
-export default class LongTermMemoryState {
-  static #instance: LongTermMemoryState
-
+export default class MemoryState {
   #memories = $state<Memory[]>([])
   #isLoading = $state(false)
-
-  private constructor() {}
-
-  static get instance() {
-    return this.#instance ?? (this.#instance = new LongTermMemoryState())
-  }
 
   get memories(): Memory[] {
     return this.#memories

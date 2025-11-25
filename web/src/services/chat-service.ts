@@ -1,5 +1,5 @@
 import { ChatApi, type HistoryResponse } from './chat-api'
-import type { ChatMessage } from '@state/chat-state.svelte'
+import type { ChatMessage } from '@root/src/app/chat-state.svelte'
 
 export class ChatService {
   #api: ChatApi

@@ -8,9 +8,9 @@
 </script>
 
 <li class="bg-redis-white dark:bg-redis-black-90 border border-redis-black-10 dark:border-redis-dusk-70 rounded-lg p-3">
-  <div class="text-xs font-semibold uppercase mb-1 text-redis-sky-blue">
+  <h4 class="text-xs font-semibold uppercase mb-1 text-redis-sky-blue">
     {created}
-  </div>
+  </h4>
   <p class="text-sm text-redis-black dark:text-redis-white font-mono leading-relaxed">
     {content}
   </p>

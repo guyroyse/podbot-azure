@@ -1,7 +1,7 @@
 export enum Route {
   Login = 'login',
   Chat = 'chat',
-  Session = 'session',
+  Context = 'context',
   Memory = 'memory'
 }
 
@@ -27,8 +27,8 @@ export default class AppRouter {
     this.#currentRoute = Route.Chat
   }
 
-  routeToSession() {
-    this.#currentRoute = Route.Session
+  routeToContext() {
+    this.#currentRoute = Route.Context
   }
 
   routeToMemory() {

@@ -1,51 +1,43 @@
-export type WorkingMemoryMessage = {
+export type ContextMessage = {
   role: 'user' | 'assistant'
   content: string
 }
 
-export type WorkingMemory = {
+export type Context = {
   context: string
-  messages: WorkingMemoryMessage[]
+  messages: ContextMessage[]
 }
 
-export default class WorkingMemoryState {
-  static #instance: WorkingMemoryState
-
-  #workingMemory = $state<WorkingMemory>({ context: '', messages: [] })
+export default class ContextState {
+  #context = $state<Context>({ context: '', messages: [] })
   #isLoading = $state(false)
 
-  private constructor() {}
-
-  static get instance() {
-    return this.#instance ?? (this.#instance = new WorkingMemoryState())
+  get summary(): string {
+    return this.#context.context
   }
 
-  get context(): string {
-    return this.#workingMemory.context
+  get hasSummary(): boolean {
+    return this.#context.context.length > 0
   }
 
-  get hasContext(): boolean {
-    return this.#workingMemory.context.length > 0
-  }
-
-  get messages(): WorkingMemoryMessage[] {
-    return this.#workingMemory.messages
+  get messages(): ContextMessage[] {
+    return this.#context.messages
   }
 
   get messageCount(): number {
-    return this.#workingMemory.messages.length
+    return this.#context.messages.length
   }
 
   get isLoading(): boolean {
     return this.#isLoading
   }
 
-  async loadWorkingMemory(sessionId: string, username: string): Promise<void> {
+  async loadContext(sessionId: string, username: string): Promise<void> {
     this.#isLoading = true
     try {
       // TODO: Replace with actual API call
       await this.#simulateDelay(500)
-      this.#workingMemory = {
+      this.#context = {
         context:
           "The user is interested in history podcasts, particularly ancient Rome and World War II. They prefer podcasts under 45 minutes and enjoy narrative storytelling styles. Previously recommended: Dan Carlin's Hardcore History, The History of Rome by Mike Duncan.",
         messages: [
@@ -64,15 +56,15 @@ export default class WorkingMemoryState {
         ]
       }
     } catch (error) {
-      console.error('Failed to load working memory:', error)
-      this.#workingMemory = { context: '', messages: [] }
+      console.error('Failed to load context:', error)
+      this.#context = { context: '', messages: [] }
     } finally {
       this.#isLoading = false
     }
   }
 
   clear(): void {
-    this.#workingMemory = { context: '', messages: [] }
+    this.#context = { context: '', messages: [] }
   }
 
   #simulateDelay(ms: number): Promise<void> {

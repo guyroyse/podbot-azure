@@ -26,11 +26,11 @@
     /* Path Aliases */
     "paths": {
       "@root/*": ["./*"],
-      "@app/*": ["./src/app/*"],
-      "@views/*": ["./src/views/*"],
+      "@src/*": ["./src/*"],
       "@components/*": ["./src/components/*"],
       "@services/*": ["./src/services/*"],
-      "@state/*": ["./src/state/*"]
+      "@state/*": ["./src/state/*"],
+      "@views/*": ["./src/views/*"]
     },
     "resolveJsonModule": true
   },

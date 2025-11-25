@@ -1,8 +1,8 @@
 <script lang="ts">
   import { marked } from 'marked'
-  import UserState from '@state/user-state.svelte.ts'
+  import AppState from '@state/app-state.svelte.ts'
 
-  const userState = UserState.instance
+  const appState = AppState.instance
 
   type MessageRole = 'user' | 'podbot'
 
@@ -23,20 +23,20 @@
   }
 
   function getUsername(role: MessageRole): string {
-    if (role === 'user') return userState.username ?? 'user'
-    return 'Podbot'
+    if (role === 'user') return appState.username ?? 'user'
+    return 'podbot'
   }
 </script>
 
-<li class="mb-1.5 py-2 list-none">
+<li class="mb-2 list-none">
   <div class="font-bold {getUsernameColor(role)}">
     {getUsername(role)}:
   </div>
-  {#if role === 'podbot'}
-    <div class="bot-message">
+  <div>
+    {#if role === 'podbot'}
       {@html renderMarkdown(content)}
-    </div>
-  {:else}
-    <div>{content}</div>
-  {/if}
+    {:else}
+      {content}
+    {/if}
+  </div>
 </li>

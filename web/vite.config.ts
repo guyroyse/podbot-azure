@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [svelte(), tailwindcss()],
   resolve: {
     alias: {
-      '@root': path.resolve('.'),
-      '@app': path.resolve('./src/app'),
+      '@root': path.resolve('./'),
+      '@src': path.resolve('./src'),
       '@components': path.resolve('./src/components'),
       '@services': path.resolve('./src/services'),
       '@state': path.resolve('./src/state'),
