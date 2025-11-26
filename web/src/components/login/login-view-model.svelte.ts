@@ -1,5 +1,6 @@
 import AppRouter from '@src/app-router.svelte'
 import AppState from '@state/app-state.svelte'
+import ConversationState from '@state/conversation-state.svelte'
 import UserState from '@state/user-state.svelte'
 import SessionState from '@state/session-state.svelte'
 
@@ -13,14 +14,16 @@ export default class LoginViewModel {
 
   #appRouter: AppRouter
   #appState: AppState
-  #userState: UserState
+  #conversationState: ConversationState
   #sessionState: SessionState
+  #userState: UserState
 
   private constructor() {
-    this.#userState = UserState.instance
-    this.#appState = AppState.instance
     this.#appRouter = AppRouter.instance
+    this.#appState = AppState.instance
+    this.#conversationState = ConversationState.instance
     this.#sessionState = SessionState.instance
+    this.#userState = UserState.instance
   }
 
   static get instance(): LoginViewModel {
@@ -75,13 +78,14 @@ export default class LoginViewModel {
   #handleLoginSuccess = async (): Promise<void> => {
     this.#hasLoginError = false
 
-    // Load sessions for the user
-    await this.#sessionState.loadSessions(this.trimmedUsername)
+    // Load or create sessions for the user
+    const username = this.#userState.username!
+    await this.#sessionState.loadSessions(username)
+    if (!this.#sessionState.hasSessions) await this.#sessionState.createSession(username)
 
-    // If no sessions exist, create one
-    if (!this.#sessionState.hasSessions) {
-      await this.#sessionState.createSession(this.trimmedUsername)
-    }
+    // load the conversation history for the user and session
+    const sessionId = this.#sessionState.currentSessionId!
+    await this.#conversationState.loadConversation(username, sessionId)
 
     // Clear form
     this.#username = ''

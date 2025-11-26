@@ -1,20 +1,20 @@
 import UserState from '@state/user-state.svelte'
 import SessionState from '@state/session-state.svelte'
-import ContextState from '@state/context-state.svelte'
+import ConversationState from '@state/conversation-state.svelte'
 import AppState from '@state/app-state.svelte'
-import type { ContextMessage } from '@state/context-state.svelte'
+import type { ContextMessage, Memory } from '@state/conversation-state.svelte'
 
 export default class ContextViewModel {
   static #instance: ContextViewModel
 
   #appState: AppState
-  #contextState: ContextState
+  #conversationState: ConversationState
   #sessionState: SessionState
   #userState: UserState
 
   private constructor() {
     this.#appState = AppState.instance
-    this.#contextState = ContextState.instance
+    this.#conversationState = ConversationState.instance
     this.#sessionState = SessionState.instance
     this.#userState = UserState.instance
   }
@@ -24,23 +24,35 @@ export default class ContextViewModel {
   }
 
   get summary(): string {
-    return this.#contextState.summary
+    return this.#conversationState.summary
   }
 
   get hasSummary(): boolean {
-    return this.#contextState.hasSummary
+    return this.#conversationState.hasSummary
   }
 
-  get messages(): ContextMessage[] {
-    return this.#contextState.messages
+  get recentMessages(): ContextMessage[] {
+    return this.#conversationState.recentMessages
   }
 
-  get hasMessages(): boolean {
-    return this.#contextState.messageCount > 0
+  get hasRecentMessages(): boolean {
+    return this.#conversationState.hasRecentMessages
   }
 
-  get messageCount(): number {
-    return this.#contextState.messageCount
+  get recentMessagesCount(): number {
+    return this.#conversationState.recentMessagesCount
+  }
+
+  get relevantMemories(): Memory[] {
+    return this.#conversationState.relevantMemories
+  }
+
+  get hasRelevantMemories(): boolean {
+    return this.#conversationState.hasRelevantMemories
+  }
+
+  get relevantMemoriesCount(): number {
+    return this.#conversationState.relevantMemoriesCount
   }
 
   async loadContext(): Promise<void> {
@@ -50,7 +62,7 @@ export default class ContextViewModel {
 
     this.#appState.showOverlay()
     try {
-      await this.#contextState.loadContext(sessionId, username)
+      await this.#conversationState.loadConversation(username, sessionId)
     } finally {
       this.#appState.hideOverlay()
     }

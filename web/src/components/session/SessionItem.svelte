@@ -3,7 +3,7 @@
 
   interface Props {
     id: string
-    lastActive: Date
+    lastActive: string // ISO date string
   }
 
   let { id, lastActive }: Props = $props()
@@ -14,9 +14,10 @@
     viewModel.selectSession(id)
   }
 
-  function formatLastActive(date: Date): string {
+  function formatLastActive(isoDate: string): string {
     const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
+    const then = new Date(isoDate)
+    const diffMs = now.getTime() - then.getTime()
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
     const diffDays = Math.floor(diffHours / 24)
 

@@ -11,7 +11,7 @@
   </h3>
   <ul class="space-y-3">
     {#each viewModel.memories as memory}
-      <MemoryItem content={memory.content} created={memory.created} />
+      <MemoryItem content={memory.content} createdAt={memory.createdAt} />
     {/each}
   </ul>
 {/if}

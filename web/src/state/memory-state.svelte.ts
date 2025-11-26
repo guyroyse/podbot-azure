@@ -1,10 +1,6 @@
-import * as memoryService from '@services/memory-service'
+import { fetchMemories, type Memory } from '@services/podbot-service'
 
-export type Memory = {
-  id: string
-  content: string
-  created: string
-}
+export type { Memory }
 
 export default class MemoryState {
   static #instance: MemoryState
@@ -31,7 +27,7 @@ export default class MemoryState {
 
   async loadMemories(username: string): Promise<void> {
     try {
-      this.#memories = await memoryService.loadMemories(username)
+      this.#memories = await fetchMemories(username)
     } catch (error) {
       console.error('Failed to load memories:', error)
       this.#memories = []

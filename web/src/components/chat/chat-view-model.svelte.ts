@@ -1,14 +1,14 @@
 import AppState from '@state/app-state.svelte'
-import ChatState from '@state/chat-state.svelte'
+import ConversationState from '@state/conversation-state.svelte'
 import SessionState from '@state/session-state.svelte'
 import UserState from '@state/user-state.svelte'
-import type { ChatMessage } from '@state/chat-state.svelte'
+import type { ChatMessage } from '@state/conversation-state.svelte'
 
 export default class ChatViewModel {
   static #instance: ChatViewModel
 
   #appState: AppState
-  #chatState: ChatState
+  #conversationState: ConversationState
   #sessionState: SessionState
   #userState: UserState
 
@@ -16,7 +16,7 @@ export default class ChatViewModel {
 
   private constructor() {
     this.#appState = AppState.instance
-    this.#chatState = ChatState.instance
+    this.#conversationState = ConversationState.instance
     this.#sessionState = SessionState.instance
     this.#userState = UserState.instance
   }
@@ -42,11 +42,11 @@ export default class ChatViewModel {
   }
 
   get messages(): ChatMessage[] {
-    return this.#chatState.messages
+    return this.#conversationState.chatHistory
   }
 
   get messageCount(): number {
-    return this.#chatState.messageCount
+    return this.#conversationState.chatHistory.length
   }
 
   sendMessage = async (): Promise<void> => {
@@ -60,20 +60,7 @@ export default class ChatViewModel {
 
     this.#appState.showOverlay()
     try {
-      await this.#chatState.sendMessage(sessionId, username, message)
-    } finally {
-      this.#appState.hideOverlay()
-    }
-  }
-
-  async loadMessages(): Promise<void> {
-    const sessionId = this.#sessionState.currentSessionId
-    const username = this.#userState.username
-    if (!sessionId || !username) return
-
-    this.#appState.showOverlay()
-    try {
-      await this.#chatState.loadMessages(sessionId, username)
+      await this.#conversationState.sendMessage(username, sessionId, message)
     } finally {
       this.#appState.hideOverlay()
     }

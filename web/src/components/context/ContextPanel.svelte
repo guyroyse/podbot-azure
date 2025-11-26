@@ -2,9 +2,14 @@
   import ContextViewModel from '@components/context/context-view-model.svelte'
   import ContextSummary from './ContextSummary.svelte'
   import ContextMessages from './ContextMessages.svelte'
+  import ContextMemories from './ContextMemories.svelte'
   import InfoCard from '@components/InfoCard.svelte'
 
   const viewModel = ContextViewModel.instance
+
+  $effect(() => {
+    viewModel.loadContext()
+  })
 </script>
 
 <div class="flex-1 flex flex-col min-h-0 p-5 overflow-y-auto">
@@ -18,9 +23,10 @@
     messages and recent conversation history.
   </p>
 
-  {#if viewModel.hasSummary || viewModel.hasMessages}
+  {#if viewModel.hasSummary || viewModel.hasRecentMessages || viewModel.hasRelevantMemories}
     <ContextSummary />
     <ContextMessages />
+    <ContextMemories />
   {:else}
     <InfoCard
       clazz="flex items-center justify-center"

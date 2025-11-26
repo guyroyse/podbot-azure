@@ -1,5 +1,4 @@
-import * as sessionService from '@services/session-service'
-import type { Session } from '@services/session-service'
+import { createSession, fetchSessions, type Session } from '@services/podbot-service'
 
 export type { Session }
 
@@ -33,7 +32,7 @@ export default class SessionState {
 
   async createSession(username: string): Promise<void> {
     try {
-      const session = await sessionService.createSession(username)
+      const session = await createSession(username)
       this.#sessions.unshift(session)
       this.selectSession(session.id)
     } catch (error) {
@@ -43,11 +42,16 @@ export default class SessionState {
 
   async loadSessions(username: string): Promise<void> {
     try {
-      this.#sessions = await sessionService.loadSessions(username)
+      this.#sessions = await fetchSessions(username)
       if (this.hasSessions && !this.currentSessionId) this.selectSession(this.#sessions[0].id)
     } catch (error) {
       console.error('Failed to load sessions:', error)
       this.#sessions = []
     }
+  }
+
+  clear(): void {
+    this.#sessions = []
+    this.#currentSessionId = null
   }
 }

@@ -1,15 +1,24 @@
 import AppRouter, { Route } from '@src/app-router.svelte'
 import UserState from '@state/user-state.svelte'
+import ConversationState from '@state/conversation-state.svelte'
+import MemoryState from '@state/memory-state.svelte'
+import SessionState from '@state/session-state.svelte'
 
 export default class HeaderViewModel {
   static #instance: HeaderViewModel
 
   #appRouter: AppRouter
   #userState: UserState
+  #conversationState: ConversationState
+  #memoryState: MemoryState
+  #sessionState: SessionState
 
   private constructor() {
     this.#appRouter = AppRouter.instance
     this.#userState = UserState.instance
+    this.#conversationState = ConversationState.instance
+    this.#memoryState = MemoryState.instance
+    this.#sessionState = SessionState.instance
   }
 
   static get instance(): HeaderViewModel {
@@ -42,6 +51,9 @@ export default class HeaderViewModel {
 
   logout = (): void => {
     this.#userState.logout()
+    this.#conversationState.clear()
+    this.#memoryState.clear()
+    this.#sessionState.clear()
     this.#appRouter.routeToLogin()
   }
 

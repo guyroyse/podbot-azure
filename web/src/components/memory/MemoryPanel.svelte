@@ -4,6 +4,10 @@
   import InfoCard from '@components/InfoCard.svelte'
 
   const viewModel = MemoryViewModel.instance
+
+  $effect(() => {
+    viewModel.loadMemories()
+  })
 </script>
 
 <div class="flex-1 flex flex-col min-h-0 p-5 overflow-y-auto">
