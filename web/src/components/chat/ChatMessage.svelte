@@ -22,7 +22,7 @@
   <div class="font-bold {usernameColor}">
     {username}:
   </div>
-  <div>
+  <div class="prose prose-invert max-w-none">
     {#if role === 'podbot'}
       {@html renderedContent}
     {:else}

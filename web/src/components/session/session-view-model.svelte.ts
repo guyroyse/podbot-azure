@@ -53,6 +53,9 @@ export default class SessionViewModel {
     const username = this.#userState.username
     if (!username) return
 
+    // clear the conversation state before creating a new session
+    this.#conversationState.clear()
+
     await this.#sessionState.createSession(username)
   }
 }
