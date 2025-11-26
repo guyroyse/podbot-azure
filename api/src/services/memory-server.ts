@@ -93,34 +93,3 @@ export async function replaceWorkingMemory(
 
   return data
 }
-
-/**
- * Delete conversation history for a session
- */
-export async function removeWorkingMemory(
-  namespace: string,
-  userId: string,
-  sessionId: string,
-  invocationContext: InvocationContext
-): Promise<void> {
-  const url = new URL(`/v1/working-memory/${sessionId}`, config.amsBaseUrl)
-  url.searchParams.set('namespace', namespace)
-  url.searchParams.set('user_id', userId)
-
-  invocationContext.log(`[AMS DELETE] ${url.toString()}`)
-
-  const response = await fetch(url.toString(), {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Client-Version': '0.12.0'
-    }
-  })
-
-  invocationContext.log(`[AMS DELETE] Response Status: ${response.status}`)
-
-  if (!response.ok) {
-    invocationContext.error(`Failed to delete working memory: ${response.statusText}`)
-    throw new Error(`Failed to delete working memory: ${response.statusText}`)
-  }
-}

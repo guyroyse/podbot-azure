@@ -1,9 +1,9 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 
-import { processMessage } from '@services/chat-service.js'
+import { sendMessage } from '@services/chat-service.js'
 import responses from './http-responses.js'
 
-export async function requestAndResponse(
+export async function sendMessageHandler(
   request: HttpRequest,
   invocationContext: InvocationContext
 ): Promise<HttpResponseInit> {
@@ -30,13 +30,13 @@ export async function requestAndResponse(
   }
 
   try {
-    // Process the message
+    // Send message and get response with context
     invocationContext.log(`Processing message for podbot.${username}.${sessionId}`)
-    const response = await processMessage(username, sessionId, message, invocationContext)
+    const chatWithContext = await sendMessage(username, sessionId, message, invocationContext)
 
-    // Return the response
+    // Return chat + context
     invocationContext.log(`Generated response for podbot.${username}.${sessionId}`)
-    return responses.ok({ response })
+    return responses.ok(chatWithContext)
   } catch (error) {
     invocationContext.error(`Error processing chat for podbot.${username}.${sessionId}:`, error)
     return responses.serverError('Failed to process chat')

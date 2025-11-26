@@ -1,26 +1,47 @@
 import { app } from '@azure/functions'
 
-import { fetchSessionHistory } from './fetch-session-history.js'
-import { requestAndResponse } from './request-and-response.js'
-import { deleteSession } from './delete-session.js'
+import { fetchSessionsHandler } from './fetch-sessions.js'
+import { createSessionHandler } from './create-session.js'
+import { fetchSessionHandler } from './fetch-session.js'
+import { sendMessageHandler } from './send-message.js'
+import { fetchMemoriesHandler } from './fetch-memories.js'
 
-app.http('fetchSessionHistory', {
+// GET /api/sessions/{username} - List all sessions for user
+app.http('fetchSessions', {
   methods: ['GET'],
-  route: 'sessions/{sessionId}/{username}',
+  route: 'sessions/{username}',
   authLevel: 'anonymous',
-  handler: fetchSessionHistory
+  handler: fetchSessionsHandler
 })
 
-app.http('requestAndResponse', {
+// POST /api/sessions/{username} - Create new session
+app.http('createSession', {
   methods: ['POST'],
-  route: 'sessions/{sessionId}/{username}',
+  route: 'sessions/{username}',
   authLevel: 'anonymous',
-  handler: requestAndResponse
+  handler: createSessionHandler
 })
 
-app.http('deleteSession', {
-  methods: ['DELETE'],
-  route: 'sessions/{sessionId}/{username}',
+// GET /api/sessions/{username}/{sessionId} - Get chat history + context for session
+app.http('fetchSession', {
+  methods: ['GET'],
+  route: 'sessions/{username}/{sessionId}',
   authLevel: 'anonymous',
-  handler: deleteSession
+  handler: fetchSessionHandler
+})
+
+// POST /api/sessions/{username}/{sessionId} - Send message to session
+app.http('sendMessage', {
+  methods: ['POST'],
+  route: 'sessions/{username}/{sessionId}',
+  authLevel: 'anonymous',
+  handler: sendMessageHandler
+})
+
+// GET /api/memories/{username} - Fetch all long-term memories for user
+app.http('fetchMemories', {
+  methods: ['GET'],
+  route: 'memories/{username}',
+  authLevel: 'anonymous',
+  handler: fetchMemoriesHandler
 })

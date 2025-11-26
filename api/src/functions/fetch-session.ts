@@ -1,10 +1,9 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 
-import type { ChatMessage } from '@services/chat-service.js'
-import { fetchHistory } from '@services/chat-service.js'
+import { fetchSession } from '@services/chat-service.js'
 import responses from './http-responses.js'
 
-export async function fetchSessionHistory(
+export async function fetchSessionHandler(
   request: HttpRequest,
   invocationContext: InvocationContext
 ): Promise<HttpResponseInit> {
@@ -23,12 +22,12 @@ export async function fetchSessionHistory(
   }
 
   try {
-    // Fetch chat history
-    invocationContext.log(`Fetching history for podbot.${username}.${sessionId}`)
-    const chatHistory: ChatMessage[] = await fetchHistory(username, sessionId, invocationContext)
+    // Fetch chat history + context
+    invocationContext.log(`Fetching session for podbot.${username}.${sessionId}`)
+    const chatWithContext = await fetchSession(username, sessionId, invocationContext)
 
-    // Return chat history
-    return responses.ok(chatHistory)
+    // Return chat + context
+    return responses.ok(chatWithContext)
   } catch (error) {
     invocationContext.error(`Error getting session for podbot.${username}.${sessionId}:`, error)
     return responses.serverError('Failed to get session')

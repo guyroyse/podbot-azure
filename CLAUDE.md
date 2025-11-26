@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
-TypeScript-based chat application using Azure Static Web Apps and Azure Functions that integrates with Redis Agent Memory Server (AMS) to create PodBot - a specialized chatbot that provides podcast recommendations.
+TypeScript-based chat application using Azure Static Web Apps, Azure Functions, and Svelte 5 that integrates with Redis Agent Memory Server (AMS) to create PodBot - a specialized chatbot that provides podcast recommendations. The application features multi-session support, conversation context visualization, and long-term memory management.
 
 ## Project Structure
 
@@ -28,21 +28,38 @@ api/                           # Azure Functions backend
 ├── package.json               # Workspace: @podbot/api
 └── tsconfig.json
 
-web/                           # Frontend application
+web/                           # Frontend application (Svelte 5)
 ├── src/
-│   ├── model/                 # MVC Model layer
-│   │   ├── chat-api.ts        # API client
-│   │   └── chat-model.ts      # Business logic
-│   ├── view/                  # MVC View layer
-│   │   ├── display-view.ts    # Chat display
-│   │   ├── session-view.ts    # Session controls
-│   │   └── sender-view.ts     # Message input
-│   ├── controller.ts          # MVC Controller
+│   ├── components/            # Svelte components
+│   │   ├── chat/              # Chat UI components
+│   │   ├── context/           # Context display components
+│   │   ├── header/            # Header components
+│   │   ├── login/             # Login UI components
+│   │   ├── memory/            # Memory display components
+│   │   ├── session/           # Session management components
+│   │   └── *.svelte           # Shared components (Footer, BusyOverlay, etc.)
+│   ├── services/              # API client layer
+│   │   ├── auth-service.ts    # Authentication logic
+│   │   └── podbot-service.ts  # API client for backend
+│   ├── state/                 # Reactive state management (Svelte 5 runes)
+│   │   ├── app-state.svelte.ts           # Global app state (busy overlay)
+│   │   ├── conversation-state.svelte.ts  # Chat & context state
+│   │   ├── memory-state.svelte.ts        # Long-term memory state
+│   │   ├── session-state.svelte.ts       # Session management state
+│   │   └── user-state.svelte.ts          # User authentication state
+│   ├── views/                 # Top-level view components (routable)
+│   │   ├── ChatView.svelte    # Main chat interface
+│   │   ├── ContextView.svelte # AMS context display
+│   │   ├── LoginView.svelte   # Login screen
+│   │   └── MemoryView.svelte  # Long-term memory display
+│   ├── app-router.svelte.ts   # Client-side routing (singleton)
+│   ├── App.svelte             # Root component
 │   ├── main.ts                # App entry point
-│   ├── types.ts
-│   └── style.css
+│   └── styles.css             # Tailwind CSS
 ├── index.html
 ├── package.json               # Workspace: @podbot/web
+├── vite.config.ts             # Vite + Svelte + Tailwind config
+├── svelte.config.js           # Svelte 5 config (runes enabled)
 └── staticwebapp.config.json
 
 infra/                         # Bicep templates for Azure deployment
@@ -91,7 +108,8 @@ npm run dev                # Start Azure Functions (func start)
 # From web directory
 cd web
 npm run build              # Vite build
-npm run dev                # SWA CLI (not Vite!)
+npm run dev                # SWA CLI (serves pre-built dist/)
+npm run dev:local          # Vite dev server (frontend-only, hot reload)
 ```
 
 ### Docker Management
@@ -103,16 +121,22 @@ docker compose logs -f     # View logs
 
 ### Testing API Directly
 ```bash
-# Send message
-curl -X POST http://localhost:7071/api/sessions/testuser \
+# List all sessions for user
+curl -X GET http://localhost:7071/api/sessions/testuser
+
+# Create new session
+curl -X POST http://localhost:7071/api/sessions/testuser
+
+# Get chat history + context for session
+curl -X GET http://localhost:7071/api/sessions/testuser/{sessionId}
+
+# Send message to session
+curl -X POST http://localhost:7071/api/sessions/testuser/{sessionId} \
   -H "Content-Type: application/json" \
   -d '{"message": "Recommend some history podcasts"}'
 
-# Get history
-curl -X GET http://localhost:7071/api/sessions/testuser
-
-# Clear session
-curl -X DELETE http://localhost:7071/api/sessions/testuser
+# Get all long-term memories
+curl -X GET http://localhost:7071/api/memories/testuser
 ```
 
 ## Architecture & Key Implementation Details
@@ -201,22 +225,61 @@ Defined in `api/src/services/agent-adapter.ts`:
 - Maintains preferences across conversations
 - Uses temperature 0.7 for creative recommendations
 
-### Frontend MVC Architecture
-The web frontend uses a clean MVC (Model-View-Controller) pattern:
-- **Model** (`chat-model.ts`): Manages data and business logic via `chat-api.ts`
-- **View** (separate view classes):
-  - `DisplayView`: Chat message display with markdown rendering
-  - `SessionView`: Username input and session management
-  - `SenderView`: Message input form
-- **Controller** (`controller.ts`): Coordinates between views and model using EventTarget pattern
-- Views extend EventTarget for custom events (load, clear, send, etc.)
+### Frontend Architecture (Svelte 5)
+The web frontend uses **Svelte 5** with a modern component-based architecture:
+
+**Key Technologies:**
+- **Svelte 5** with **runes** (`$state`, `$derived`, `$effect`) for reactive state management
+- **Tailwind CSS v4** for styling (via `@tailwindcss/vite` plugin)
+- **Vite** for fast development and optimized builds
+- **TypeScript path aliases** for clean imports (`@components/`, `@services/`, `@state/`, `@views/`)
+
+**Architecture Patterns:**
+- **Singleton State Classes**: Global state managed via singleton classes in `src/state/` using Svelte 5 runes
+  - `AppState`: Global UI state (busy overlay)
+  - `ConversationState`: Chat history and AMS context
+  - `SessionState`: Active session management
+  - `UserState`: User authentication
+  - `MemoryState`: Long-term memory data
+- **Client-Side Routing**: `AppRouter` singleton with route-based view switching (Login, Chat, Context, Memory)
+- **Component Hierarchy**: Views → Components → Shared UI elements
+- **Service Layer**: `podbot-service.ts` handles all API communication with typed responses
+
+**Svelte 5 Runes Usage:**
+- `$state<T>()` for reactive state in singleton classes
+- Private class fields (`#field`) with public getters for encapsulation
+- Singleton pattern via static `instance` getter: `AppState.instance`
+
+**TypeScript Path Aliases (web only):**
+```typescript
+import AppState from '@state/app-state.svelte.ts'
+import { sendMessage } from '@services/podbot-service'
+import ChatPanel from '@components/chat/ChatPanel.svelte'
+import ChatView from '@views/ChatView.svelte'
+```
+
+Configured in both `vite.config.ts` (for Vite) and `tsconfig.json` (for TypeScript).
+
+**Client-Side Routing:**
+- Simple enum-based routing via `AppRouter` singleton
+- Four routes: `Login`, `Chat`, `Context`, `Memory`
+- No URL routing - purely state-based view switching
+- App.svelte conditionally renders view components based on `appRouter.currentRoute`
+- Route transitions via methods: `routeToLogin()`, `routeToChat()`, `routeToContext()`, `routeToMemory()`
+
+**Views Structure:**
+- All views follow same pattern: `SessionPanel` (left sidebar) + content panel (right)
+- `ChatView`: SessionPanel + ChatPanel (main chat interface)
+- `ContextView`: SessionPanel + ContextPanel (displays AMS working memory context)
+- `MemoryView`: SessionPanel + MemoryPanel (displays long-term memories)
+- `LoginView`: Standalone login form
 
 ### Frontend-Backend Integration
 - SWA CLI (`swa start`) proxies `/api/*` to Azure Functions (port 7071)
 - `staticwebapp.config.json` configures runtime: `node:20`
-- Frontend at `web/src/model/chat-api.ts` makes fetch calls to `/api/sessions/{username}`
+- `podbot-service.ts` makes fetch calls to `/api/sessions/{username}/{sessionId}`
 - Markdown rendering via `marked.js` for bot responses
-- LocalStorage persists username between sessions
+- LocalStorage persists username (in `auth-service.ts`)
 
 ### Docker Compose Services
 ```yaml
@@ -291,17 +354,26 @@ azd down            # Delete all resources
 
 ## API Endpoints
 
-All routes use pattern `/api/sessions/{username}`:
+**Session Management:**
+- `GET /api/sessions/{username}` - List all sessions for user
+  - Returns: `Session[]` with `{ id: string, lastActive: string }`
 
-- `GET /api/sessions/{username}` - Fetch conversation history
-  - Returns: `ChatMessage[]` with roles: 'summary', 'user', 'podbot'
+- `POST /api/sessions/{username}` - Create new session
+  - Returns: `Session` object
 
-- `POST /api/sessions/{username}` - Send message and get response
+**Chat Operations:**
+- `GET /api/sessions/{username}/{sessionId}` - Fetch chat history + AMS context
+  - Returns: `ChatWithContext` containing:
+    - `chatHistory`: `ChatMessage[]` with roles: 'user', 'podbot'
+    - `context`: `{ summary: string, recentMessages: ContextMessage[], relevantMemories: Memory[] }`
+
+- `POST /api/sessions/{username}/{sessionId}` - Send message and get response
   - Body: `{ "message": "your message here" }`
-  - Returns: `{ "response": "PodBot's reply" }`
+  - Returns: `ChatWithContext` (updated chat + context)
 
-- `DELETE /api/sessions/{username}` - Clear conversation history
-  - Returns: 204 No Content
+**Memory Operations:**
+- `GET /api/memories/{username}` - Fetch all long-term memories for user
+  - Returns: `Memory[]` with `{ id: string, content: string, createdAt: string }`
 
 ## Common Issues & Workarounds
 
@@ -328,5 +400,19 @@ First-time users return 404 from `readWorkingMemory()`. This is expected behavio
 ### Workspace Command Confusion
 - Running `npm run dev` from root ≠ running from `web/` directory
 - Root `npm run dev` builds both workspaces then starts API + SWA CLI
-- `web/package.json` `npm run dev` only starts SWA CLI
+- `web/package.json` `npm run dev` only starts SWA CLI (serves pre-built `dist/`)
+- `web/package.json` `npm run dev:local` starts Vite dev server (for frontend-only development)
 - Always run development commands from **root directory** for full stack
+
+### Svelte 5 Runes and State Management
+- State classes in `web/src/state/*.svelte.ts` use Svelte 5 runes (`$state`)
+- Files using runes **must** have `.svelte.ts` extension (not just `.ts`)
+- Svelte compiler must have `runes: true` in `svelte.config.js`
+- State is accessed via singleton pattern: `AppState.instance.displayOverlay`
+- All state classes use private fields (`#field`) with public getters for encapsulation
+
+### TypeScript Path Aliases (web)
+When adding new imports with path aliases in the web workspace:
+- Aliases defined in both `vite.config.ts` (for runtime) and `tsconfig.json` (for IDE/type checking)
+- Available aliases: `@root/`, `@src/`, `@components/`, `@services/`, `@state/`, `@views/`
+- Vite handles resolution at build time, no additional tools needed (unlike API which uses `tsc-alias`)

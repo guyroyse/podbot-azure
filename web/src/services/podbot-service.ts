@@ -38,20 +38,20 @@ export type ChatWithContext = {
 
 // ========== Session Management ==========
 
-export async function fetchSessions(username: string): Promise<Session[]> {
-  const url = `/api/sessions/${username}`
-  const options = buildOptions('GET')
-  const response = await fetch(url, options)
-  validateResponse(response)
-  return (await response.json()) as Session[]
-}
-
 export async function createSession(username: string): Promise<Session> {
   const url = `/api/sessions/${username}`
   const options = buildOptions('POST')
   const response = await fetch(url, options)
   validateResponse(response)
   return (await response.json()) as Session
+}
+
+export async function fetchSessions(username: string): Promise<Session[]> {
+  const url = `/api/sessions/${username}`
+  const options = buildOptions('GET')
+  const response = await fetch(url, options)
+  validateResponse(response)
+  return (await response.json()) as Session[]
 }
 
 // ========== Chat + Context (Combined) ==========

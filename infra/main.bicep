@@ -116,6 +116,7 @@ module functions './functions.bicep' = {
   params: {
     resourceToken: resourceToken
     environmentName: environmentName
+    redisConnectionString: redis.outputs.connectionString
     openAiConfig: {
       endpoint: litellm.outputs.uri  // Use LiteLLM proxy instead of direct Azure OpenAI
       deploymentName: 'gpt-4o-mini'  // Standard OpenAI model name (LiteLLM translates)

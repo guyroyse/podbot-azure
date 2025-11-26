@@ -18,6 +18,7 @@ param location string = resourceGroup().location
 param resourceToken string
 param environmentName string
 
+param redisConnectionString string
 param openAiConfig OpenAiConfig
 param amsConfig AmsConfig
 
@@ -111,6 +112,10 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'OPENAI_BASE_URL'
           value: openAiConfig.endpoint  // LiteLLM proxy URL
+        }
+        {
+          name: 'REDIS_URL'
+          value: redisConnectionString
         }
         {
           name: 'AMS_BASE_URL'

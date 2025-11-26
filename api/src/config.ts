@@ -10,5 +10,8 @@ export const config = {
 
   // AMS
   amsBaseUrl: process.env.AMS_BASE_URL ?? 'http://localhost:8000',
-  amsContextWindowMax: process.env.AMS_CONTEXT_WINDOW_MAX ? parseInt(process.env.AMS_CONTEXT_WINDOW_MAX) : 4000
+  amsContextWindowMax: process.env.AMS_CONTEXT_WINDOW_MAX ? parseInt(process.env.AMS_CONTEXT_WINDOW_MAX) : 4000,
+
+  // Redis
+  redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379'
 }
