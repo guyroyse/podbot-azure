@@ -1,26 +1,37 @@
 import type { InvocationContext } from '@azure/functions'
-import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 
-import type { AmsMessage } from './memory-server.js'
 import { config } from '@/config.js'
-import { generateResponse } from './agent-adapter.js'
-import { readWorkingMemory, replaceWorkingMemory, AmsRole } from './memory-server.js'
-import type { Session, ChatMessage } from './redis-adapter.js'
-import { listUserSessions, createUserSession, readChat, appendToChat } from './redis-adapter.js'
+import { generateResponse, LLM_Role } from '@adapters/llm-adapter.js'
+import { readWorkingMemory, replaceWorkingMemory, AMS_Role } from '@adapters/memory-server-adapter.js'
+import { appendToChat, createUserSession, listUserSessions, readChat } from '@adapters/redis-storage-adapter.js'
+import type { LLM_Message } from '@adapters/llm-adapter.js'
+import type { AMS_Message, AMS_WorkingMemory } from '@adapters/memory-server-adapter.js'
+import type { SortedSetMember, StreamMessage } from '@adapters/redis-storage-adapter.js'
 
-// ========== Types ==========
+export type Session = {
+  id: string
+  lastActive: string // ISO 8601 date string
+}
 
-export type { Session, ChatMessage }
+export enum Role {
+  USER = 'user',
+  PODBOT = 'podbot'
+}
+
+export type ChatMessage = {
+  role: Role
+  content: string
+}
 
 export type ContextMessage = {
-  role: 'user' | 'assistant'
+  role: Role
   content: string
 }
 
 export type Memory = {
   id: string
   content: string
-  createdAt: string
+  createdAt: string // ISO 8601 date string
 }
 
 export type Context = {
@@ -34,29 +45,44 @@ export type ChatWithContext = {
   context: Context
 }
 
-// ========== Session Management ==========
-
 /**
  * List all sessions for a user
  */
-export async function fetchSessions(
-  username: string,
-  invocationContext: InvocationContext
-): Promise<Session[]> {
-  return await listUserSessions('podbot', username, invocationContext)
+export async function fetchSessions(username: string, invocationContext: InvocationContext): Promise<Session[]> {
+  try {
+    // Get session entries from Redis
+    const sessionEntries: SortedSetMember[] = await listUserSessions('podbot', username, invocationContext)
+
+    // Map to Session objects
+    return sessionEntries.map(entry => ({
+      id: entry.value,
+      lastActive: new Date(entry.score).toISOString()
+    }))
+  } catch (error) {
+    invocationContext.error(`Error fetching sessions for podbot.${username}`, error)
+    throw error
+  }
 }
 
 /**
  * Create a new session for a user
  */
-export async function createNewSession(
-  username: string,
-  invocationContext: InvocationContext
-): Promise<Session> {
-  return await createUserSession('podbot', username, invocationContext)
-}
+export async function createNewSession(username: string, invocationContext: InvocationContext): Promise<Session> {
+  try {
+    // Create session in Redis
+    const sessionEntry: SortedSetMember = await createUserSession('podbot', username, invocationContext)
+    invocationContext.log(`Created new session for podbot.${username}: ${sessionEntry.value}`)
 
-// ========== Chat + Context (Combined) ==========
+    // Return Session object
+    return {
+      id: sessionEntry.value,
+      lastActive: new Date(sessionEntry.score).toISOString()
+    }
+  } catch (error) {
+    invocationContext.error(`Error creating session for podbot.${username}`, error)
+    throw error
+  }
+}
 
 /**
  * Fetch chat history from Redis and context from AMS
@@ -68,13 +94,22 @@ export async function fetchSession(
 ): Promise<ChatWithContext> {
   try {
     // Get chat history from Redis Stream
-    const chatHistory = await readChat('podbot', username, sessionId, invocationContext)
-    invocationContext.log(`Fetched ${chatHistory.length} messages from Redis for podbot.${username}.${sessionId}`)
+    const streamMessages: StreamMessage[] = await readChat('podbot', username, sessionId, invocationContext)
+    invocationContext.log(`Fetched ${streamMessages.length} messages from Redis for podbot.${username}.${sessionId}`)
 
     // Get context from AMS
-    const context = await fetchContext(username, sessionId, invocationContext)
+    const context: Context = await fetchContext(username, sessionId, invocationContext)
+    invocationContext.log(`Fetched context from AMS for podbot.${username}.${sessionId}`)
 
-    return { chatHistory, context }
+    // Map stream messages to chat history
+    const chatHistory: ChatMessage[] = streamMessages.map(msg => ({
+      role: roleStringToRole(msg.message.role),
+      content: msg.message.content ?? ''
+    }))
+
+    // Return combined chat history and context
+    const chatWithContext: ChatWithContext = { chatHistory, context }
+    return chatWithContext
   } catch (error) {
     invocationContext.error(`Error fetching session for podbot.${username}.${sessionId}`, error)
     throw error
@@ -92,53 +127,64 @@ export async function sendMessage(
 ): Promise<ChatWithContext> {
   try {
     // Get existing AMS working memory
-    const { context, messages } = await readWorkingMemory('podbot', username, sessionId, invocationContext)
+    const workingMemory: AMS_WorkingMemory = await readWorkingMemory('podbot', username, sessionId, invocationContext)
     invocationContext.log(`Fetched working memory for podbot.${username}.${sessionId}`)
 
-    // Convert to LangChain message format
-    const contextMessage = context ? new SystemMessage(`Previous conversation context: ${context}`) : undefined
-    const chatMessages = messages.map(amsToLangChainMessage)
-    const userMessage = new HumanMessage(message)
-    const langChainMessages = contextMessage
-      ? [contextMessage, ...chatMessages, userMessage]
-      : [...chatMessages, userMessage]
-    invocationContext.log(`Converted messages to LangChain format for podbot.${username}.${sessionId}`)
+    // Build LLM messages with context and memories
+    const llmMessages: LLM_Message[] = []
+
+    // Add context and memories as JSON in a system message
+    if (workingMemory.context || workingMemory.memories.length > 0) {
+      llmMessages.push({
+        role: LLM_Role.SYSTEM,
+        content: JSON.stringify({
+          context: workingMemory.context,
+          memories: workingMemory.memories
+        })
+      })
+    }
+
+    // Add conversation history as actual messages
+    workingMemory.messages.forEach(msg => {
+      llmMessages.push({
+        role: amsRoleToLlmRole(msg.role),
+        content: msg.content
+      })
+    })
+
+    // Add new user message
+    llmMessages.push({ role: LLM_Role.USER, content: message })
+    invocationContext.log(`Prepared ${llmMessages.length} messages for LLM`)
 
     // Get AI response
-    const aiMessage = await generateResponse(langChainMessages, invocationContext)
-    const aiText = aiMessage.text
+    const llmResponse: string = await generateResponse(llmMessages, invocationContext)
     invocationContext.log(`Generated AI response for podbot.${username}.${sessionId}`)
 
-    // Convert back to AMS format and save
-    const amsUserMessage = langchainToAmsMessage(userMessage)
-    const amsAiMessage = langchainToAmsMessage(aiMessage)
-    const amsMessages = [...messages, amsUserMessage, amsAiMessage]
-    invocationContext.log(`Converted messages to AMS format for podbot.${username}.${sessionId}`)
+    // Save updated working memory to AMS (convert roles with validation)
+    const userMessage: AMS_Message = { role: llmRoleToAmsRole(LLM_Role.USER), content: message }
+    workingMemory.messages.push(userMessage)
 
-    // Save updated working memory to AMS
-    await replaceWorkingMemory(
-      sessionId,
-      config.amsContextWindowMax,
-      {
-        namespace: 'podbot',
-        user_id: username,
-        session_id: sessionId,
-        context: context,
-        messages: amsMessages
-      },
-      invocationContext
-    )
+    const assistantMessage: AMS_Message = { role: llmRoleToAmsRole(LLM_Role.ASSISTANT), content: llmResponse }
+    workingMemory.messages.push(assistantMessage)
+
+    await replaceWorkingMemory(sessionId, config.amsContextWindowMax, workingMemory, invocationContext)
+
     invocationContext.log(`Updated working memory for podbot.${username}.${sessionId}`)
 
     // Save messages to Redis Stream
-    const userChatMessage: ChatMessage = { role: 'user', content: message }
-    const aiChatMessage: ChatMessage = { role: 'podbot', content: aiText }
-    await appendToChat('podbot', username, sessionId, userChatMessage, invocationContext)
-    await appendToChat('podbot', username, sessionId, aiChatMessage, invocationContext)
+    await appendToChat('podbot', username, sessionId, 'user', message, invocationContext)
+    await appendToChat('podbot', username, sessionId, 'podbot', llmResponse, invocationContext)
+
     invocationContext.log(`Saved messages to Redis stream for podbot.${username}.${sessionId}`)
 
     // Return updated chat + context
-    const chatHistory = await readChat('podbot', username, sessionId, invocationContext)
+    // NOTE: Technically we could construct all of this from the above, but re-fetching ensures consistency and is easier
+    const streamMessages = await readChat('podbot', username, sessionId, invocationContext)
+    const chatHistory = streamMessages.map(msg => ({
+      role: roleStringToRole(msg.message.role),
+      content: msg.message.content ?? ''
+    }))
+
     const updatedContext = await fetchContext(username, sessionId, invocationContext)
 
     return { chatHistory, context: updatedContext }
@@ -148,21 +194,14 @@ export async function sendMessage(
   }
 }
 
-// ========== Memories (AMS Long-Term Memory) ==========
-
 /**
  * Fetch all long-term memories for a user
  */
-export async function fetchUserMemories(
-  username: string,
-  invocationContext: InvocationContext
-): Promise<Memory[]> {
+export async function fetchUserMemories(username: string, invocationContext: InvocationContext): Promise<Memory[]> {
   // TODO: Implement when AMS long-term memory API is available
   invocationContext.log(`Fetching memories for podbot.${username} (not yet implemented)`)
   return []
 }
-
-// ========== Helper Functions ==========
 
 /**
  * Fetch context from AMS (summary + recent messages + relevant memories)
@@ -173,12 +212,19 @@ async function fetchContext(
   invocationContext: InvocationContext
 ): Promise<Context> {
   try {
-    const { context, messages } = await readWorkingMemory('podbot', username, sessionId, invocationContext)
+    const { context, messages, memories } = await readWorkingMemory('podbot', username, sessionId, invocationContext)
 
     return {
-      summary: context || '',
-      recentMessages: messages.map(amsToContextMessage),
-      relevantMemories: [] // TODO: Fetch from AMS long-term memory when available
+      summary: context ?? '',
+      recentMessages: messages.map(msg => ({
+        role: amsRoleToRole(msg.role),
+        content: msg.content
+      })),
+      relevantMemories: memories.map(mem => ({
+        id: mem.id,
+        content: mem.text,
+        createdAt: mem.created_at
+      }))
     }
   } catch (error) {
     invocationContext.error(`Error fetching context for podbot.${username}.${sessionId}`, error)
@@ -191,41 +237,62 @@ async function fetchContext(
 }
 
 /**
- * Convert AMS message to LangChain message
+ * Convert AMS role to domain Role enum
  */
-function amsToLangChainMessage(amsMessage: AmsMessage): BaseMessage {
-  switch (amsMessage.role) {
-    case AmsRole.USER:
-      return new HumanMessage(amsMessage.content)
-    case AmsRole.ASSISTANT:
-      return new AIMessage(amsMessage.content)
+function amsRoleToRole(role: AMS_Role): Role {
+  switch (role) {
+    case AMS_Role.USER:
+      return Role.USER
+    case AMS_Role.ASSISTANT:
+      return Role.PODBOT
     default:
-      throw new Error(`Unknown AMS role: ${amsMessage.role}`)
+      throw new Error(`Unknown AMS role: ${role}`)
   }
 }
 
 /**
- * Convert AMS message to context message
+ * Convert Redis role string to domain Role enum
  */
-function amsToContextMessage(message: AmsMessage): ContextMessage {
-  return {
-    role: message.role as 'user' | 'assistant',
-    content: message.content
+function roleStringToRole(role?: string): Role {
+  if (!role) throw new Error('Redis role is missing or null')
+
+  switch (role) {
+    case 'user':
+      return Role.USER
+    case 'podbot':
+      return Role.PODBOT
+    default:
+      throw new Error(`Unknown Redis role: ${role}`)
   }
 }
 
 /**
- * Convert LangChain message to AMS message
+ * Convert LLM role to AMS role
+ * System messages cannot be stored in AMS
  */
-function langchainToAmsMessage(message: BaseMessage): AmsMessage {
-  switch (message.constructor) {
-    case AIMessage:
-      return { role: AmsRole.ASSISTANT, content: message.text }
-    case HumanMessage:
-      return { role: AmsRole.USER, content: message.text }
-    case SystemMessage:
-      throw new Error('SystemMessage cannot be converted to AmsMessage')
+function llmRoleToAmsRole(role: LLM_Role): AMS_Role {
+  switch (role) {
+    case LLM_Role.USER:
+      return AMS_Role.USER
+    case LLM_Role.ASSISTANT:
+      return AMS_Role.ASSISTANT
+    case LLM_Role.SYSTEM:
+      throw new Error('System messages cannot be stored in AMS')
     default:
-      throw new Error(`Unknown LangChain message type: ${message.constructor.name}`)
+      throw new Error(`Unknown LLM role: ${role}`)
+  }
+}
+
+/**
+ * Convert AMS role to LLM role
+ */
+function amsRoleToLlmRole(role: AMS_Role): LLM_Role {
+  switch (role) {
+    case AMS_Role.USER:
+      return LLM_Role.USER
+    case AMS_Role.ASSISTANT:
+      return LLM_Role.ASSISTANT
+    default:
+      throw new Error(`Unknown AMS role: ${role}`)
   }
 }
