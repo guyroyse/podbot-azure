@@ -1,3 +1,6 @@
+// Role type - matches backend
+export type Role = 'user' | 'assistant' | 'system'
+
 // Session types
 export type Session = {
   id: string
@@ -6,13 +9,13 @@ export type Session = {
 
 // Chat types
 export type ChatMessage = {
-  role: 'user' | 'podbot'
+  role: Role
   content: string
 }
 
 // Context message types (from AMS)
 export type ContextMessage = {
-  role: 'user' | 'podbot'
+  role: Role
   content: string
 }
 
@@ -28,7 +31,6 @@ export type Memory = {
 export type Context = {
   summary: string // Summarized old conversation
   recentMessages: ContextMessage[] // Recent messages for reference (from AMS)
-  relevantMemories: Memory[] // LTM relevant to this conversation
 }
 
 // Combined response for chat operations

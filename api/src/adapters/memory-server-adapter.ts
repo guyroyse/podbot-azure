@@ -1,13 +1,9 @@
 import type { InvocationContext } from '@azure/functions'
 import { config } from '@/config.js'
-
-export enum AMS_Role {
-  USER = 'user',
-  ASSISTANT = 'assistant'
-}
+import type { Role } from '@/types.js'
 
 export type AMS_Message = {
-  role: AMS_Role
+  role: Role
   content: string
   [key: string]: unknown // AMS returns additional fields that need to be passed around but aren't used
 }
@@ -26,13 +22,24 @@ export type AMS_SearchResponse = {
   next_offset: string | null
 }
 
+export type AMS_PromptMessage = {
+  role: Role
+  content: {
+    type: 'text'
+    text: string
+  }
+}
+
+export type AMS_PromptsMessages = {
+  messages: AMS_PromptMessage[]
+}
+
 export type AMS_WorkingMemory = {
   namespace: string
   user_id: string
   session_id: string
   context: string
   messages: AMS_Message[]
-  memories: AMS_Memory[]
   [key: string]: unknown // AMS returns additional fields that need to be passed around but aren't used
 }
 
@@ -69,8 +76,7 @@ export async function readWorkingMemory(
       user_id: userId,
       session_id: sessionId,
       context: '',
-      messages: [],
-      memories: []
+      messages: []
     } as AMS_WorkingMemory
   }
 
@@ -137,16 +143,19 @@ export async function searchLongTermMemories(
 ): Promise<AMS_Memory[]> {
   // Build the request URL
   const url = new URL(`${config.amsBaseUrl}/v1/long-term-memory/search`)
-  url.searchParams.set('namespace', namespace)
-  url.searchParams.set('user_id', userId)
 
   invocationContext.log(`[AMS POST] ${url.toString()}`)
 
   // Use a broad search query to get all memories via KNN
+  // Include namespace and user_id filters in the request body
   const requestBody = {
     text: 'user preferences interests likes dislikes experiences memories',
-    limit: 100 // Maximum limit allowed by AMS
+    limit: 100, // Maximum limit allowed by AMS
+    namespace: { eq: namespace },
+    user_id: { eq: userId }
   }
+
+  invocationContext.log(`[AMS POST] Request body:`, JSON.stringify(requestBody, null, 2))
 
   // Make the POST request
   const response = await fetch(url.toString(), {
@@ -175,4 +184,63 @@ export async function searchLongTermMemories(
   invocationContext.log(`[AMS POST] Found ${data.total} memories`)
 
   return data.memories
+}
+
+/**
+ * Generate an enriched prompt with relevant memory context
+ * This endpoint combines working memory and long-term memory search
+ */
+export async function generateMemoryPrompt(
+  namespace: string,
+  userId: string,
+  sessionId: string,
+  query: string,
+  invocationContext: InvocationContext
+): Promise<AMS_PromptsMessages> {
+  // Build the request URL
+  const url = new URL(`${config.amsBaseUrl}/v1/memory/prompt`)
+
+  invocationContext.log(`[AMS POST] ${url.toString()}`)
+
+  // Build the request body
+  const requestBody = {
+    query: query,
+    session: {
+      session_id: sessionId,
+      namespace: namespace,
+      user_id: userId,
+      context_window_max: config.amsContextWindowMax
+    },
+    long_term_search: {
+      text: query,
+      limit: 10,
+      namespace: { eq: namespace },
+      user_id: { eq: userId }
+    }
+  }
+
+  invocationContext.log(`[AMS POST] Request body:`, JSON.stringify(requestBody, null, 2))
+
+  // Make the POST request
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-Version': '0.12.0'
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  // Log and throw on errors
+  invocationContext.log(`[AMS POST] Response Status: ${response.status}`)
+  if (!response.ok) {
+    invocationContext.error(`Failed to generate memory prompt: ${response.statusText}`)
+    throw new Error(`Failed to generate memory prompt: ${response.statusText}`)
+  }
+
+  // Parse and return the enriched prompt
+  const data = (await response.json()) as AMS_PromptsMessages
+  invocationContext.log(`[AMS POST] Generated prompt with ${data.messages.length} messages`)
+
+  return data
 }

@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import type { InvocationContext } from '@azure/functions'
 
 import { config } from '@/config.js'
+import type { Role } from '@/types.js'
 
 const SYSTEM_PROMPT = dedent`
   You are PodBot, an enthusiastic podcast expert and recommendation engine.
@@ -31,20 +32,14 @@ const SYSTEM_PROMPT = dedent`
 
 let openai: OpenAI | null = null
 
-export enum LLM_Role {
-  SYSTEM = 'system',
-  USER = 'user',
-  ASSISTANT = 'assistant'
-}
-
 export type LLM_Message = {
-  role: LLM_Role
+  role: Role
   content: string
 }
 
 export async function generateResponse(messages: LLM_Message[], invocationContext: InvocationContext): Promise<string> {
   // Add system prompt at the beginning
-  const messagesWithSystem: LLM_Message[] = [{ role: LLM_Role.SYSTEM, content: SYSTEM_PROMPT }, ...messages]
+  const messagesWithSystem: LLM_Message[] = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages]
 
   // Call the LLM
   const client = getOpenAIClient(invocationContext)

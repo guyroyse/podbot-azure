@@ -4,17 +4,16 @@ import {
   type ChatMessage,
   type ChatWithContext,
   type Context,
-  type ContextMessage,
-  type Memory
+  type ContextMessage
 } from '@services/podbot-service'
 
-export type { ChatMessage, Context, ContextMessage, Memory }
+export type { ChatMessage, Context, ContextMessage }
 
 export default class ConversationState {
   static #instance: ConversationState
 
   #chatHistory = $state<ChatMessage[]>([])
-  #context = $state<Context>({ summary: '', recentMessages: [], relevantMemories: [] })
+  #context = $state<Context>({ summary: '', recentMessages: [] })
 
   private constructor() {}
 
@@ -54,18 +53,6 @@ export default class ConversationState {
     return this.recentMessagesCount > 0
   }
 
-  get relevantMemories(): Memory[] {
-    return this.#context.relevantMemories
-  }
-
-  get relevantMemoriesCount(): number {
-    return this.relevantMemories.length
-  }
-
-  get hasRelevantMemories(): boolean {
-    return this.relevantMemoriesCount > 0
-  }
-
   // ========== Actions ==========
 
   async loadConversation(username: string, sessionId: string): Promise<void> {
@@ -76,7 +63,7 @@ export default class ConversationState {
     } catch (error) {
       console.error('Failed to load conversation:', error)
       this.#chatHistory = []
-      this.#context = { summary: '', recentMessages: [], relevantMemories: [] }
+      this.#context = { summary: '', recentMessages: [] }
     }
   }
 
@@ -93,6 +80,6 @@ export default class ConversationState {
 
   clear(): void {
     this.#chatHistory = []
-    this.#context = { summary: '', recentMessages: [], relevantMemories: [] }
+    this.#context = { summary: '', recentMessages: [] }
   }
 }

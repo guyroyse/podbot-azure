@@ -2,7 +2,7 @@ import UserState from '@state/user-state.svelte'
 import SessionState from '@state/session-state.svelte'
 import ConversationState from '@state/conversation-state.svelte'
 import AppState from '@state/app-state.svelte'
-import type { ContextMessage, Memory } from '@state/conversation-state.svelte'
+import type { ContextMessage } from '@state/conversation-state.svelte'
 
 export default class ContextViewModel {
   static #instance: ContextViewModel
@@ -41,18 +41,6 @@ export default class ContextViewModel {
 
   get recentMessagesCount(): number {
     return this.#conversationState.recentMessagesCount
-  }
-
-  get relevantMemories(): Memory[] {
-    return this.#conversationState.relevantMemories
-  }
-
-  get hasRelevantMemories(): boolean {
-    return this.#conversationState.hasRelevantMemories
-  }
-
-  get relevantMemoriesCount(): number {
-    return this.#conversationState.relevantMemoriesCount
   }
 
   async loadContext(): Promise<void> {

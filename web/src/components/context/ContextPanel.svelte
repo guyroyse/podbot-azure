@@ -2,7 +2,6 @@
   import ContextViewModel from '@components/context/context-view-model.svelte'
   import ContextSummary from './ContextSummary.svelte'
   import ContextMessages from './ContextMessages.svelte'
-  import ContextMemories from './ContextMemories.svelte'
   import InfoCard from '@components/InfoCard.svelte'
 
   const viewModel = ContextViewModel.instance
@@ -23,10 +22,9 @@
     messages and recent conversation history.
   </p>
 
-  {#if viewModel.hasSummary || viewModel.hasRecentMessages || viewModel.hasRelevantMemories}
+  {#if viewModel.hasSummary || viewModel.hasRecentMessages}
     <ContextSummary />
     <ContextMessages />
-    <ContextMemories />
   {:else}
     <InfoCard
       clazz="flex items-center justify-center"
