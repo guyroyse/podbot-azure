@@ -1,204 +1,155 @@
-# PodBot - AI Podcast Recommendation Chat
+# Podcast Chatbot with Agent Memory and Azure
 
-PodBot is a specialized AI chatbot that provides personalized podcast recommendations and discusses all things podcasting. Built with Azure Static Web Apps, Azure Functions, and powered by OpenAI, it maintains conversation context across sessions using Redis Agent Memory Server.
+## Overview
 
-## Quick Start
+The **Podcast Chatbot**—or **Podbot** for short—demonstrates how Redis Agent Memory Server enables intelligent, context-aware AI chatbots with persistent conversation memory. Built on Azure using Static Web Apps, Functions, and OpenAI, this demo showcases Redis's ability to manage short- and long-term conversation context and provide multi-session support for AI applications.
 
-### Prerequisites
+## Table of Contents
 
-- [Node.js](https://nodejs.org/) (v20)
-- [Docker](https://www.docker.com/) (for local Redis and AMS)
+- [Demo Objectives](#demo-objectives)
+- [Setup](#setup)
+- [Running the Demo](#running-the-demo)
+- [Slide Deck](#slide-deck)
+- [Architecture](#architecture)
+- [Known Issues](#known-issues)
+- [Resources](#resources)
+- [Maintainers](#maintainers)
+- [License](#license)
 
-### Local Development Setup
+## Demo Objectives
 
-1. **Clone this repo**
+- Highlight [Redis Agent Memory Server](https://redis.github.io/agent-memory-server/) (AMS) to manage short- and long-term memory for AI workflows.
+- Demonstrate integration of AMS with Azure Static Web Apps, Azure Functions, and Azure Managed Redis.
+- Show [LiteLLM](https://www.litellm.ai/) as a proxy for Azure OpenAI API access.
 
-2. **Install dependencies**:
+## Setup
 
-```bash
-npm install
-```
+### Dependencies
 
-3. **Set up environment file**:
+**For Local Development:**
+
+- [Node.js](https://nodejs.org/) v20+
+- [Docker](https://www.docker.com/) 24+ (for local Redis, AMS, and LiteLLM)
+- [OpenAI API Key](https://platform.openai.com/api-keys)
+
+**For Azure Deployment:**
+
+- [Azure](https://portal.azure.com/) subscription
+- Azure CLI (`az`) and Azure Developer CLI (`azd`) installed
+
+### Configuration
+
+**Local Configuration:**
+
+Copy `.env.example` to `.env` and fill in your OpenAI API key.
 
 ```bash
 cp .env.example .env
 ```
 
-4. **Add your OpenAI API key** to `.env`:
+If you use Node Version Manager run:
 
-```
-OPENAI_API_KEY=your_openai_api_key_here
+```bash
+nvm use
 ```
 
-5. **Start Docker services** (Redis, AMS, and LiteLLM):
+Install Node.js dependencies:
+
+```bash
+npm install
+```
+
+**Azure Configuration:**
+
+No configuration necessary.
+
+## Running the Demo
+
+**Running Locally:**
+
+In one terminal window start the Docker services for Redis, AMS, and LiteLLM:
 
 ```bash
 docker compose up
 ```
 
-6. **Start the development servers**:
+In another terminal window, start the development servers:
 
 ```bash
 npm run dev
 ```
 
-This builds the project and starts both the Azure Functions API and the SWA CLI.
+This will compile and start the application. Now, just naviagate to [http://localhost:4280](http://localhost:4280) in your browser and start using Podbot.
 
-7. **Open your browser** to [http://localhost:4280](http://localhost:4280)
+**Running on Azure:**
 
-That's it! Enter a username and start chatting with PodBot about podcasts.
-
-## How to Use
-
-1. **Enter a username** and click "Load" to start or resume a conversation
-2. **Ask about podcasts** - anything from recommendations to industry discussion
-3. **Get AI-powered responses** with personalized suggestions based on your conversation history
-4. **Clear your session** anytime to start fresh
-
-## Project Structure
-
+```bash
+azd up
 ```
-podbot-azure/
-├── api/                         # Azure Functions (backend)
-│   ├── src/
-│   │   ├── functions/           # HTTP function definitions
-│   │   │   ├── sessions.ts      # Route registration (app.http calls)
-│   │   │   ├── fetch-session-history.ts
-│   │   │   ├── request-and-response.ts
-│   │   │   ├── delete-session.ts
-│   │   │   └── http-responses.ts
-│   │   ├── services/            # Business logic layers
-│   │   │   ├── agent-adapter.ts # LLM integration (OpenAI/Azure OpenAI)
-│   │   │   ├── chat-service.ts  # Message conversion & orchestration
-│   │   │   └── memory-server.ts # AMS API client
-│   │   ├── config.ts
-│   │   └── main.ts              # Entry point
-│   ├── host.json
-│   ├── local.settings.json
-│   └── package.json             # Workspace: @podbot/api
-├── web/                         # Static Web App (frontend)
-│   ├── src/
-│   │   ├── model/               # MVC Model layer
-│   │   │   ├── chat-api.ts      # API client
-│   │   │   └── chat-model.ts    # Business logic
-│   │   ├── view/                # MVC View layer
-│   │   │   ├── display-view.ts  # Chat display
-│   │   │   ├── session-view.ts  # Session controls
-│   │   │   └── sender-view.ts   # Message input
-│   │   ├── controller.ts        # MVC Controller
-│   │   ├── main.ts              # App entry point
-│   │   ├── types.ts
-│   │   └── style.css
-│   ├── index.html
-│   ├── staticwebapp.config.json
-│   └── package.json             # Workspace: @podbot/web
-├── infra/                       # Azure Bicep templates
-├── docker-compose.yaml          # Redis + AMS + LiteLLM for local dev
-├── azure.yaml                   # Azure Developer CLI config
-├── package.json                 # Root workspace: @podbot/root
-└── .env                         # Environment variables
+
+Navigate to the URL provided by the `azd up` command in your browser and start using Podbot.
+
+### Using the Demo
+
+**Login:**
+Enter a username and password. Click "Login" or just hit enter. Any username will work but the password must be "password".
+
+**Sessions:**
+The app will automatically create a session for you. If there are existing sessions, you will be added to the most recently used one. If you want to start a new session, click the "New Session" button. If you want to switch sessions, just click on the one you want.
+
+**Chatting:**
+Ask about podcasts in the textbox at the bottom. Responses will show up in the main panel. If you have navigated away from the chat view, you can return to it by clicking the "Chat" icon at the top.
+
+**Working Memory:**
+Working Memory is accessed via the "Note" icon at the top. When selected, the main panel shows the compacted summary of older messages and recent conversation history that Podbot is using to generate responses. Working Memory will change if you switch sessions or ask Podbot more questions.
+
+**Long-term Memory:**
+Long-term Memory is accessed via the "Brain" icon at the top. This panel shows the memories that Podbot has extracted from all of your conversations and stored for future reference. Long-term Memory will change if you switch users.
+
+**Logout**
+Click the "Logout" icon in the top right corner. This will return you to the login screen. All sessions and memory will be saved in Redis for later.
+
+### Stopping the Demo
+
+**Running Locally:**
+
+Just hit `Ctrl+C` in the terminal windows where you ran `npm run dev` and `docker compose up` respectively.
+
+**Running on Azure:**
+
+```bash
+azd down --purge
 ```
+
+Note that this will delete all resources, including the Redis database. All data will be lost.
+
+## Slide Deck
+
+📑 **Slide Deck:** _(Coming soon)_
+Covers demo goals, architecture overview, and key Redis features.
 
 ## Architecture
 
-PodBot is built with Azure serverless technologies and containerized dependencies:
+![Architecture Diagram](./assets/architecture.png)
 
-### **Web Frontend**
+The Svelte 5 + Tailwind CSS frontend is hosted on Azure Static Web Apps and sends user requests to a collection of Azure Functions written in TypeScript. These functions use Azure OpenAI (via the LiteLLM proxy), Redis, and Redis Agent Memory Server to service those requests. AMS manages the conversation history—automatically summarizing older messages, extracting long-term memories using Azure OpenAI (again, via LiteLLM), and storing it all in Redis.
 
-- **[Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static)** for hosting
-- **[Vite](https://vitejs.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** for fast development and type safety
-- **[Marked.js](https://marked.js.org/)** for markdown rendering of bot responses
-- **[FontAwesome](https://fontawesome.com/)** for modern UI icons
+## Known Issues
 
-### **API Backend**
+- None at this time.
 
-- **[Azure Functions](https://azure.microsoft.com/en-us/products/functions)** with v4 programming model
-- **[TypeScript](https://www.typescriptlang.org/)** for end-to-end type safety
-- **[LangChain](https://js.langchain.com/)** for LLM integration and message handling
-- Clean architecture with functions, services, and shared utilities
+## Resources
 
-### **AI & Memory**
+- [LiteLLM Documentation](https://docs.litellm.ai/)
+- [Redis Agent Memory Server Documentation](https://redis.github.io/agent-memory-server/)
+- [Redis Agent Memory Server Source Code](https://github.com/redis/agent-memory-server)
 
-- **[LiteLLM](https://litellm.ai/)** proxy for unified OpenAI-compatible API gateway
-- **[OpenAI GPT-4o-mini](https://openai.com/)** (local dev) or **Azure OpenAI** (production) via LangChain for intelligent responses
-- **[Redis Agent Memory Server (AMS)](https://github.com/redis/agent-memory-server)** for persistent conversation context
-- Smart context window management for efficient token usage
+## Maintainers
 
-### **Data Storage**
+**Maintainers:**
 
-- **[Redis](https://redis.io/)** database for session storage and caching
-- **[Docker Compose](https://docs.docker.com/compose/)** for local development dependencies
+- Guy Royse — [guyroyse](https://github.com/guyroyse)
 
-```mermaid
-graph LR
-    A[Static Web App<br/>Vite + TypeScript] --> B[Azure Functions<br/>LangChain.js + TypeScript]
-    B --> F[LiteLLM Proxy<br/>OpenAI-compatible gateway]
-    B --> C[Agent Memory Server<br/>Python + FastAPI]
-    C --> F
-    F --> D[OpenAI / Azure OpenAI<br/>GPT-4o models]
-    C --> E[Redis<br/>Database]
-```
+## License
 
-## Key Features
-
-- **Podcast-Focused AI**: Specialized chatbot that only discusses podcasts and recommendations
-- **Persistent Memory**: Conversation history maintained across sessions via AMS
-- **Modern UI**: Responsive chat interface with markdown support and loading states
-- **Type Safety**: Full-stack TypeScript for reliable development
-- **Azure Native**: Built with Azure Static Web Apps and Azure Functions
-- **Serverless**: No servers to manage, scales automatically
-- **Fast Performance**: Vite for lightning-fast development and optimized builds
-- **Local Dev Friendly**: SWA CLI proxies API requests seamlessly
-
-## Development & Testing
-
-### API Testing
-
-Test the Azure Functions backend directly with curl:
-
-```bash
-# Send a message
-curl -X POST http://localhost:7071/api/sessions/testuser \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Recommend some true crime podcasts"}'
-
-# Get conversation history
-curl -X GET http://localhost:7071/api/sessions/testuser
-
-# Clear conversation
-curl -X DELETE http://localhost:7071/api/sessions/testuser
-```
-
-## Configuration
-
-### Required Environment Variables
-
-**`.env` (for Docker services):**
-
-- `OPENAI_API_KEY` - Your OpenAI API key ([get one here](https://platform.openai.com/api-keys))
-  - Used by LiteLLM to authenticate with OpenAI API
-
-**`api/local.settings.json` (checked into repo, no setup needed):**
-
-- `OPENAI_API_KEY` - Set to `sk-1234` (LiteLLM master key for internal auth)
-- `OPENAI_BASE_URL` - Set to `http://localhost:4000` (LiteLLM proxy)
-- `AMS_BASE_URL` - Agent Memory Server URL (http://localhost:8000)
-- `AMS_CONTEXT_WINDOW_MAX` - Token limit for context window (4000)
-- `NODE_ENV` - Environment mode: `dev` (uses OpenAI) or `prod`/`stage` (uses Azure OpenAI)
-
-## Local Services
-
-When running locally, the application uses these services:
-
-| Service                 | Port | Description                              |
-| ----------------------- | ---- | ---------------------------------------- |
-| **SWA CLI**             | 4280 | Static Web App dev server with API proxy |
-| **Azure Functions**     | 7071 | Backend API (Azure Functions runtime)    |
-| **LiteLLM**             | 4000 | OpenAI-compatible API gateway (Docker)   |
-| **agent-memory-server** | 8000 | Memory management service (Docker)       |
-| **redis**               | 6379 | Database for session storage (Docker)    |
-
----
-
-_For detailed implementation information, see [CLAUDE.md](./CLAUDE.md)_
+This project is licensed under the [MIT License](./LICENSE).
