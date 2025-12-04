@@ -126,8 +126,8 @@ Note that this will delete all resources, including the Redis database. All data
 
 ## Slide Deck
 
-📑 **Slide Deck:** _(Coming soon)_
-Covers demo goals, architecture overview, and key Redis features.
+📑 [Podcast Chatbot with Agent Memory and Azure](./slides/podcast-chatbot-presentation.pdf)
+Covers goals, architecture overview, key Redis features, lessons learned, and positible enhancements.
 
 ## Architecture
 
